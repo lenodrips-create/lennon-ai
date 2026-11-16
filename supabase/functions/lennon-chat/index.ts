@@ -50,7 +50,10 @@ Deno.serve(async (req) => {
   const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
   if (!token) return json({ error: "Sign in to chat with Kepler AI." }, 401, origin);
   const who = await fetch(`${Deno.env.get("SUPABASE_URL")}/auth/v1/user`, {
-    headers: { apikey: Deno.env.get("SUPABASE_ANON_KEY") ?? "", Authorization: `Bearer ${token}` },
+    headers: {
+      apikey: Deno.env.get("SUPABASE_ANON_KEY") || "sb_publishable_KGnwpyai1gG2rHBj6XSnmA_VlK-Yc8a",
+      Authorization: `Bearer ${token}`,
+    },
   });
   if (!who.ok) return json({ error: "Your sign-in expired. Sign in again to keep chatting." }, 401, origin);
 
