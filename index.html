@@ -14,326 +14,159 @@
 @font-face{font-family:"Ubuntu";src:url("fonts/Ubuntu-Medium.woff2") format("woff2");font-weight:500;font-display:swap}
 @font-face{font-family:"IBM Plex Serif";src:url("fonts/IBMPlexSerif-Regular.woff2") format("woff2");font-weight:400;font-display:swap}
 @font-face{font-family:"IBM Plex Serif";src:url("fonts/IBMPlexSerif-Italic.woff2") format("woff2");font-weight:400;font-style:italic;font-display:swap}
+
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 button,input,textarea{font:inherit;color:inherit;background:none;border:0}
 img,svg{display:block}
 
 :root{
-  --u:min(0.06410256vw,0.12400794vh);
-  --vu:0.09920635vh;
-  --inset-top:41;--inset-bottom:106;
-
+  /* Layout: full-screen video, headline + white composer centered; chat stacks just above the composer. */
   --font-text:Ubuntu,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   --font-display:Fredoka,var(--font-text);
   --font-reply:"IBM Plex Serif",Georgia,"Times New Roman",serif;
 
-  --brand-x:225;--brand-y:45;--mark:34;--brand-gap:12;--brand-fs:18.49;
-  --links-y:50.5;--links-gap:50;--links-fs:21.69;
-  --cta-x:1195;--cta-y:42;--cta-w:140;--cta-h:43;--cta-r:12;--cta-fs:15.70;--cta-dy:2;
+  --card:#ffffff;
+  --line:#e5e7eb;
+  --ink:#1f2937;
+  --ink-soft:#374151;
+  --muted:#9ca3af;
+  --idle:#e5e7eb;
+  --accent:#E88654;
 
-  --hero-gap:51;
-  --h1-y:323;--h1-fs:36.25;--display-ls:0.0018em;
-  --nav-ls:-0.0115em;--brand-ls:-0.0154em;--cta-ls:-0.0127em;--body-ls:0.007em;
-  --proof-ls:0.0065em;
-  --w-display:500;--w-nav:400;--w-brand:500;--w-cta:500;--w-label:500;--w-model:400;--w-proof:400;
-
-  --card-x:425;--card-y:413;--card-w:708;--card-h:143;--card-r:26;
-  --ph-fs:9.97;
-  --chip-h:30;--chip-r:9;--chip-fs:9.0;--chip-gap:5.5;
-  --son-fs:10.4;--son-top:15.5;
-
-  --by-fs:14.01;
-
+  --w:767px;
   --e-primary:cubic-bezier(.16,1,.3,1);
   --e-soft:cubic-bezier(.22,1,.36,1);
+  color-scheme:light;
 }
-@supports (height:100dvh){
-  :root{--u:min(0.06410256vw,0.12400794dvh);--vu:0.09920635dvh}
-}
-@media (min-width:1561px){:root{--inset-top:27;--inset-bottom:74}}
 
 html,body{height:100%}
 body{
   background:#0a0d12;color:#fff;overflow:hidden;
   font-family:var(--font-text);
-  font-synthesis:none;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
-  text-rendering:geometricPrecision;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;
 }
-a{color:inherit;text-decoration:none}
-:focus-visible{outline:2px solid #F8B285;outline-offset:3px;border-radius:4px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:8px}
 
 .stage{position:fixed;inset:0;overflow:hidden;background:#0a0d12}
 .stage-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
 .frame{
   position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;
-  padding:calc(var(--inset-top)*var(--vu)) calc(225*var(--u)) calc(var(--inset-bottom)*var(--vu));
+  padding-block:max(24px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-bottom));
+  padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));
 }
-#menu{position:absolute;opacity:0;pointer-events:none}
-
-/* ── Nav ── */
-.nav{position:relative;height:calc(43*var(--u));display:flex;align-items:center;justify-content:space-between;flex:none}
-.brand{display:flex;align-items:center;gap:calc(var(--brand-gap)*var(--u));cursor:pointer}
-.mark{width:calc(var(--mark)*var(--u));height:calc(var(--mark)*var(--u))}
-.wordmark{
-  font-family:var(--font-display);
-  font-size:calc(var(--brand-fs)*var(--u));font-weight:var(--w-brand);letter-spacing:var(--brand-ls);
-  transform:translateY(calc(1*var(--u)));text-shadow:0 calc(1*var(--u)) calc(10*var(--u)) rgba(0,0,0,.30);
-}
-.links{
-  position:absolute;left:50%;transform:translateX(-50%);
-  top:calc((50.5 - 41)*var(--u));display:flex;gap:calc(var(--links-gap)*var(--u));
-}
-.links button{
-  font-size:calc(var(--links-fs)*var(--u));font-weight:var(--w-nav);letter-spacing:var(--nav-ls);line-height:1.2;
-  text-shadow:0 calc(1*var(--u)) calc(12*var(--u)) rgba(0,0,0,.32);cursor:pointer;transition:opacity .18s ease;
-}
-.links button:hover{opacity:.72}
-.cta{
-  align-self:flex-start;margin-top:calc((42 - 41)*var(--u));
-  width:calc(var(--cta-w)*var(--u));height:calc(var(--cta-h)*var(--u));border-radius:calc(var(--cta-r)*var(--u));
-  display:flex;align-items:center;justify-content:center;cursor:pointer;
-  font-size:calc(var(--cta-fs)*var(--u));font-weight:var(--w-cta);letter-spacing:var(--cta-ls);
-  background:linear-gradient(180deg,#3d3d3f 0%,#1d1d20 100%);
-  box-shadow:inset 0 calc(1*var(--u)) 0 rgba(255,255,255,.10),0 calc(2*var(--u)) calc(14*var(--u)) rgba(0,0,0,.28);
-  transition:filter .18s ease;
-}
-.cta span{transform:translateY(calc(var(--cta-dy)*var(--u)))}
-.cta:hover{filter:brightness(1.16)}
-.cta:active{transform:translateY(1px)}
-
-.burger{
-  display:none;width:38px;height:38px;border-radius:11px;cursor:pointer;
-  background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.14);
-  align-items:center;justify-content:center;
-}
-.sheet{display:none}
 
 /* ── Hero ── */
-.hero{
-  flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:calc(var(--hero-gap)*var(--vu));padding-bottom:calc(4*var(--vu));
-}
+.hero{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(24px,5vh,48px)}
 .h1{
-  font-family:var(--font-display);
-  font-size:calc(var(--h1-fs)*var(--u));font-weight:var(--w-display);line-height:1.10;letter-spacing:var(--display-ls);
-  text-align:center;text-wrap:balance;text-shadow:0 calc(2*var(--u)) calc(22*var(--u)) rgba(0,0,0,.30);
+  font-family:var(--font-display);font-weight:500;text-align:center;text-wrap:balance;
+  font-size:clamp(28px,4.2vw,46px);line-height:1.1;
+  text-shadow:0 2px 22px rgba(0,0,0,.30);
 }
 
-/* ── Conversation (appears after the first message) ── */
+/* ── Conversation ── */
 .log{
-  display:none;width:calc(var(--card-w)*var(--u));max-width:100%;margin-right:calc(3*var(--u));
-  flex:1;min-height:0;overflow-y:auto;flex-direction:column;gap:14px;padding:4px 2px;
-  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent;
+  display:none;width:min(var(--w),100%);flex:1;min-height:0;overflow-y:auto;
+  flex-direction:column;gap:12px;padding:4px 2px;
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.35) transparent;
 }
-.chatting .h1{display:none}
-.chatting .log{display:flex}
-.chatting .hero{justify-content:flex-end;gap:18px;padding-top:calc(50vh - 40px)}
 .log>:first-child{margin-top:auto}
-.chatting .proof{display:none}
+.chatting .h1,.chatting .proof{display:none}
+.chatting .log{display:flex}
+.chatting .hero{justify-content:flex-end;gap:16px;padding-top:calc(50vh - 60px)}
 .msg{
-  max-width:85%;padding:11px 15px;border-radius:16px;white-space:pre-wrap;overflow-wrap:anywhere;
-  font-size:clamp(14px,calc(15.5*var(--u)),17px);line-height:1.5;letter-spacing:var(--body-ls);
-  background:rgba(41,41,43,.86);backdrop-filter:blur(20px) saturate(112%);-webkit-backdrop-filter:blur(20px) saturate(112%);
-  box-shadow:inset 0 0 0 1px rgba(214,228,255,.12);
+  max-width:85%;padding:12px 18px;border-radius:22px;white-space:pre-wrap;overflow-wrap:anywhere;
+  font-size:16px;line-height:1.55;
 }
-.msg.user{align-self:flex-end;background:linear-gradient(163deg,#F49D70 0%,#E88654 100%);color:#fff;box-shadow:0 3px 12px rgba(160,80,40,.30)}
-.msg.ai{align-self:flex-start;color:#ececee;font-family:var(--font-reply);line-height:1.6}
+.msg.user{align-self:flex-end;background:var(--ink);color:#fff;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+.msg.ai{
+  align-self:flex-start;background:var(--card);color:var(--ink);border:1px solid var(--line);
+  font-family:var(--font-reply);line-height:1.6;box-shadow:0 6px 24px rgba(0,0,0,.12);
+}
 .msg.ai::before{
-  content:"KEPLER AI";display:block;margin-bottom:4px;font-family:var(--font-display);
-  font-size:11px;font-weight:600;letter-spacing:.09em;color:#F8B285;
+  content:"Kepler AI";display:block;margin-bottom:2px;
+  font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--accent);
 }
-.msg.error{color:#ffcfb4}
+.msg.error{color:#b45309}
 
 /* ── Composer ── */
 .card{
-  position:relative;flex:none;
-  width:calc(var(--card-w)*var(--u));height:calc(var(--card-h)*var(--u));border-radius:calc(var(--card-r)*var(--u));
-  margin-right:calc(3*var(--u));
-  background:rgba(41,41,43,.955);
-  backdrop-filter:blur(calc(26*var(--u))) saturate(112%);-webkit-backdrop-filter:blur(calc(26*var(--u))) saturate(112%);
-  box-shadow:inset 0 0 0 1px rgba(214,228,255,.14),0 calc(22*var(--u)) calc(60*var(--u)) rgba(0,0,0,.30);
+  position:relative;flex:none;width:min(var(--w),100%);
+  background:var(--card);color:var(--ink);
+  border:1px solid var(--line);border-radius:32px;
+  box-shadow:0 1px 2px rgba(0,0,0,.04),0 12px 40px rgba(0,0,0,.16);
+  padding:22px 12px 12px 21px;
 }
 .ph{
-  position:absolute;left:calc(27*var(--u));top:calc(33*var(--u));right:calc(24*var(--u));
-  height:calc(52*var(--u));resize:none;outline:none;overflow-y:auto;
-  color:#ececee;font-size:calc(var(--ph-fs)*var(--u));font-weight:400;line-height:1.35;letter-spacing:var(--body-ls);
+  display:block;width:100%;resize:none;outline:none;
+  font-size:16px;line-height:1.5;color:var(--ink);
+  min-height:24px;max-height:200px;overflow-y:auto;padding-right:10px;
 }
-.ph::placeholder{color:#8B8C8E;opacity:1}
+.ph::placeholder{color:var(--muted);opacity:1}
 .ph:focus-visible{outline:none}
 
-.tools{
-  position:absolute;left:calc(19*var(--u));top:calc(92*var(--u));height:calc(var(--chip-h)*var(--u));
-  right:calc((425 + 708 - 1134)*var(--u));
+.tools{display:flex;align-items:center;margin-top:26px;gap:4px}
+.ibtn{
+  height:34px;display:inline-flex;align-items:center;gap:8px;padding:0 8px;border-radius:12px;
+  color:var(--ink);font-size:16px;font-weight:500;cursor:pointer;white-space:nowrap;
+  transition:background .15s ease;
 }
-.chips{display:flex;align-items:center;gap:calc(var(--chip-gap)*var(--u));height:100%}
-.chip{
-  width:calc(var(--cw)*var(--u));height:calc(var(--chip-h)*var(--u));border-radius:calc(var(--chip-r)*var(--u));
-  display:flex;align-items:center;gap:calc(var(--ig)*var(--u));padding-left:calc(var(--pl)*var(--u));
-  font-size:calc(var(--chip-fs)*var(--u));font-weight:var(--w-label);color:#909093;line-height:1;white-space:nowrap;cursor:pointer;
-  background:linear-gradient(180deg,rgba(255,255,255,.088) 0%,rgba(255,255,255,.050) 45%,rgba(255,255,255,.038) 100%);
-  border:1px solid rgba(255,255,255,.05);transition:color .18s ease;
-}
-.chip:hover{background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.07));color:#c8c8cb}
-.chip span{transform:translateY(calc(2*var(--u)))}
-.chip svg{flex:none;width:calc(var(--iw)*var(--u));height:auto}
-
-.right{position:absolute;inset:0;pointer-events:none}
-.right>*{position:absolute;pointer-events:auto}
-.model{
-  left:calc((955 - 444 - 0.8)*var(--u));top:calc(var(--son-top)*var(--u));
-  font-size:calc(var(--son-fs)*var(--u));font-weight:var(--w-model);color:#98999C;line-height:1;white-space:nowrap;
-  display:inline-flex;align-items:center;
-}
-.attach{
-  left:calc((1043.15 - 444)*var(--u));top:calc((515.14 - 505)*var(--u));
-  color:#A9AAAD;cursor:pointer;transition:color .18s ease;
-}
-.attach:hover{color:#fff}
-.attach svg{width:calc(19.79*var(--u));height:auto}
+.ibtn:hover{background:#f3f4f6}
+.ibtn svg{flex:none}
+.attach{padding:0 6px;margin-left:-6px}
+.spacer{flex:1}
+.model{font-weight:400;gap:10px;padding:0 10px}
 .send{
-  left:calc((1084 - 444)*var(--u));top:calc((507 - 505)*var(--u));
-  width:calc(35*var(--u));height:calc(35*var(--u));border-radius:50%;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(163deg,#FBBC94 0%,#F49D70 46%,#E88654 100%);
-  box-shadow:0 calc(3*var(--u)) calc(12*var(--u)) rgba(210,110,60,.34);
-  transition:filter .18s ease,transform .12s ease;
+  width:36px;height:36px;border-radius:50%;margin-left:20px;flex:none;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  background:var(--idle);color:#fff;transition:background .18s ease,transform .12s ease;
 }
-.send svg{width:calc(11.66*var(--u));height:auto}
-.send:hover{filter:brightness(1.07)}
-.send:active{transform:scale(.95)}
-.send:disabled{filter:saturate(.4) brightness(.8);cursor:default}
+.send.ready{background:var(--ink)}
+.send.ready:hover{background:#000}
+.send:active{transform:scale(.94)}
+.send:disabled{cursor:default}
 #file{display:none}
 
+/* Popover menus (Tools, model) */
+.menu{
+  position:absolute;bottom:52px;z-index:5;min-width:240px;
+  background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:18px;
+  box-shadow:0 18px 48px rgba(0,0,0,.18);padding:6px;
+  transform:translateY(-8px);
+}
+.menu-tools{left:44px}
+.menu-model{right:56px}
+.menu button{
+  width:100%;display:flex;align-items:center;gap:10px;text-align:left;
+  padding:10px 12px;border-radius:12px;font-size:15px;cursor:pointer;
+}
+.menu button:hover{background:#f3f4f6}
+.menu .sub{display:block;font-size:13px;color:#6b7280;margin-top:1px}
+.menu .check{margin-left:auto;color:var(--ink)}
+
 /* ── Footer ── */
-.proof{flex:none;display:flex;flex-direction:column;align-items:center;gap:calc(52.3*var(--vu))}
-.by{
-  font-family:var(--font-display);
-  font-size:calc(var(--by-fs)*var(--u));font-weight:var(--w-proof);letter-spacing:var(--proof-ls);
-  color:rgba(255,255,255,.95);text-shadow:0 calc(1*var(--u)) calc(12*var(--u)) rgba(0,0,0,.35);
-}
+.proof{flex:none;display:flex;justify-content:center;padding-top:16px}
+.by{font-family:var(--font-display);font-size:14px;color:rgba(255,255,255,.95);text-shadow:0 1px 12px rgba(0,0,0,.35)}
 
-/* ── Chats drawer ── */
-.drawer{
-  position:fixed;z-index:20;top:max(12px,env(safe-area-inset-top));bottom:max(12px,env(safe-area-inset-bottom));
-  left:max(12px,env(safe-area-inset-left));width:min(300px,calc(100vw - 24px));
-  display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:16px;
-  background:rgba(24,24,27,.86);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  border:1px solid rgba(255,255,255,.09);
-  transform:translateX(calc(-100% - 24px));transition:transform .32s cubic-bezier(.4,0,.2,1);
-}
-.drawer.open{transform:none}
-.drawer-head{display:flex;align-items:center;justify-content:space-between;font-weight:500;font-size:15px}
-.drawer-close{width:30px;height:30px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#A9AAAD}
-.drawer-close:hover{color:#fff;background:rgba(255,255,255,.08)}
-.new-chat{
-  height:40px;border-radius:11px;font-size:14px;font-weight:520;cursor:pointer;
-  background:linear-gradient(180deg,#3d3d3f 0%,#1d1d20 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.10);
-}
-.new-chat:hover{filter:brightness(1.16)}
-.chat-list{list-style:none;overflow-y:auto;display:flex;flex-direction:column;gap:2px;min-height:0}
-.chat-list button{
-  width:100%;text-align:left;padding:9px 11px;border-radius:9px;font-size:14px;color:#c8c8cb;cursor:pointer;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-.chat-list button:hover{background:rgba(255,255,255,.06);color:#fff}
-.chat-list button[aria-current="true"]{background:rgba(255,255,255,.10);color:#fff}
-.chat-empty{font-size:13px;color:#8B8C8E;padding:4px 2px}
-.scrim{position:fixed;inset:0;z-index:19;background:rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .32s ease}
-.scrim.open{opacity:1;pointer-events:auto}
-
-/* ── TABLET ── */
-@media (min-width:600px) and (max-width:1180px) and (min-height:600px){
-  :root{--u:1px}
-  .frame{padding:clamp(24px,3.4vh,44px) clamp(28px,4.2vw,60px) clamp(26px,4.4vh,56px)}
-  .h1{font-size:clamp(27px,4.3vw,44px);line-height:1.12;white-space:nowrap}
-  .card,.log{width:min(100%,clamp(516px,74vw,760px));margin-right:0}
-  .card{
-    height:auto;padding:clamp(15px,1.9vw,24px);border-radius:clamp(17px,2.1vw,26px);
-    display:flex;flex-direction:column;gap:clamp(20px,3.2vh,44px);
-  }
-  .ph{position:static;height:auto;min-height:2.8em;max-height:9em;font-size:clamp(11px,1.35vw,14px);line-height:1.4}
-  .tools{position:static;height:auto;display:flex;flex-direction:row;flex-wrap:wrap;gap:clamp(10px,1.4vw,18px)}
-  .chips{flex-wrap:nowrap;gap:clamp(6px,.85vw,10px)}
-  .chip{width:auto;height:clamp(29px,3.4vh,34px);padding:0 clamp(7px,1vw,13px);font-size:clamp(9.6px,1.12vw,12.5px)}
-  .chip svg{width:calc(var(--iw)*1.15px)}
-  .right{position:static;display:flex;align-items:center;margin-left:auto;gap:0}
-  .right>*{position:static}
-  .model{font-size:clamp(9.8px,1.12vw,12.5px)}
-  .attach{margin-left:clamp(9px,1.4vw,20px)}
-  .attach svg{width:20px}
-  .send{margin-left:clamp(9px,1.3vw,18px);width:clamp(32px,3.5vw,38px);height:clamp(32px,3.5vw,38px)}
-  .send svg{width:12px}
-  .proof{gap:clamp(15px,2.5vh,30px)}
-  .by{font-size:14px}
-}
-
-/* ── COMPACT (phones, short screens) ── */
-@media (max-width:599px),(max-height:599px) and (max-width:1180px){
-  :root{--u:1px}
-  .frame{
-    padding:max(18px,env(safe-area-inset-top)) max(clamp(18px,5.2vw,40px),env(safe-area-inset-right))
-            max(20px,env(safe-area-inset-bottom)) max(clamp(18px,5.2vw,40px),env(safe-area-inset-left));
-  }
-  .links,.nav .cta{display:none}
-  .burger{display:flex}
-  .mark{width:30px;height:30px}
-  .wordmark{font-size:18px}
-  .sheet{
-    display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s cubic-bezier(.4,0,.2,1);flex:none;
-  }
-  #menu:checked~.sheet{grid-template-rows:1fr}
-  .sheet-inner{overflow:hidden}
-  .panel{
-    margin-top:12px;padding:10px;border-radius:16px;display:flex;flex-direction:column;gap:2px;
-    background:rgba(24,24,27,.86);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-    border:1px solid rgba(255,255,255,.09);
-  }
-  .panel button.link{text-align:left;font-size:15px;padding:10px 8px;border-radius:9px;cursor:pointer}
-  .panel button.link:hover{background:rgba(255,255,255,.06)}
-  .panel .cta{width:100%;height:40px;border-radius:11px;font-size:15px;margin-top:6px}
-  .panel .cta span{transform:none}
-  .h1{width:100%;max-width:15ch;font-size:clamp(29px,7.6vw,50px);line-height:1.14;letter-spacing:-.012em}
-  .card,.log{width:100%;max-width:600px;margin-right:0}
-  .card{height:auto;display:flex;flex-direction:column;gap:clamp(16px,4.6vh,34px);padding:clamp(13px,3.4vw,18px);border-radius:20px}
-  .ph{position:static;height:auto;min-height:1.4em;max-height:7em;font-size:max(16px,clamp(9.4px,2.95vw,14px))}
-  .ph::placeholder{white-space:nowrap;text-overflow:ellipsis}
-  .tools{position:static;height:auto;display:flex;flex-direction:column;align-items:stretch;gap:12px}
-  .chips{flex-wrap:wrap;gap:6px}
-  .chip{width:auto;height:30px;padding:0 11px;font-size:11.5px}
-  .chip svg{width:calc(var(--iw)*1.1px)}
-  .right{position:static;display:flex;align-items:center;justify-content:flex-start}
-  .right>*{position:static}
-  .model{font-size:12px}
-  .attach{margin-left:auto}
-  .attach svg{width:20px}
-  .send{margin-left:14px;width:40px;height:40px}
-  .send svg{width:13px}
-  .by{font-size:13px}
-  .proof{gap:12px}
-}
-@media (max-width:1180px) and (max-height:560px){
-  .hero{gap:16px}
-  .h1{font-size:clamp(24px,5.4vh,34px)}
-  .proof{gap:10px}
-  .frame{padding-top:10px}
+/* ── Phones ── */
+@media (max-width:520px){
+  .card{border-radius:26px;padding:18px 10px 10px 16px}
+  .tools{margin-top:18px}
+  .ibtn{font-size:15px}
+  .model{padding:0 6px;gap:6px}
+  .model .label{max-width:30vw;overflow:hidden;text-overflow:ellipsis}
+  .send{margin-left:8px}
+  .msg{font-size:15px}
+  .menu{left:8px;right:8px;min-width:0}
 }
 
 /* ── Entrance ── */
-@keyframes e-settle-down{from{opacity:0;transform:translateY(calc(-5*var(--u)))}}
-@keyframes e-settle-up{from{opacity:0;transform:translateY(calc(6*var(--u)))}}
-@keyframes e-mark{from{transform:scale(.9)}}
-@keyframes e-focus{from{opacity:0;transform:translateY(calc(14*var(--u)));filter:blur(6px)}to{filter:blur(0)}}
-@keyframes e-panel{from{opacity:0;transform:translateY(calc(18*var(--u))) scale(.985)}}
-@keyframes e-populate{from{opacity:0;transform:translateY(calc(4*var(--u)))}}
-@keyframes e-send{from{transform:scale(.82)}}
+@keyframes e-focus{from{opacity:0;transform:translateY(14px);filter:blur(6px)}to{filter:blur(0)}}
+@keyframes e-panel{from{opacity:0;transform:translateY(18px) scale(.985)}}
+@keyframes e-up{from{opacity:0;transform:translateY(6px)}}
 @media (prefers-reduced-motion:no-preference){
-  .anim .h1{animation:e-focus 1s var(--e-primary) .30s both;will-change:transform,opacity}
-  .anim .card{animation:e-panel .9s var(--e-primary) .62s both;will-change:transform,opacity}
-  .anim .ph{animation:e-populate .5s var(--e-soft) .88s both}
-  .anim .chips{animation:e-populate .5s var(--e-soft) .94s both}
-  .anim .right{animation:e-populate .5s var(--e-soft) 1s both}
-  .anim .send{animation:e-send .5s var(--e-primary) 1s both}
-  .anim .by{animation:e-settle-up .55s var(--e-soft) 1.08s both}
+  .anim .h1{animation:e-focus 1s var(--e-primary) .2s both}
+  .anim .card{animation:e-panel .9s var(--e-primary) .45s both}
+  .anim .by{animation:e-up .55s var(--e-soft) .9s both}
 }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
@@ -342,44 +175,52 @@ a{color:inherit;text-decoration:none}
 </head>
 <body>
 <div class="stage">
-  <video class="stage-video" autoplay muted loop playsinline
-    preload="auto" src="mountains.mp4"></video>
+  <video class="stage-video" autoplay muted loop playsinline preload="auto" src="mountains.mp4"></video>
 
   <div class="frame" id="frame">
     <main class="hero">
       <h1 class="h1">Ask anything. Kepler will answer.</h1>
       <div class="log" id="log" aria-live="polite"></div>
+
       <form class="card" id="form">
-        <textarea class="ph" id="box" rows="2" aria-label="Message Kepler AI"
-          placeholder="Ask Kepler AI anything, like how black holes form or what to cook tonight..."></textarea>
+        <textarea class="ph" id="box" rows="1" aria-label="Message Kepler AI" placeholder="Ask me anything..."></textarea>
+
         <div class="tools">
-          <div class="chips">
-            <button type="button" class="chip" style="--cw:107;--pl:12;--ig:3.7;--iw:15.06"
-              data-prompt="Explain this to me simply: ">
-              <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1.2a5 5 0 0 0-3 9v1.6c0 .5.4.9.9.9h4.2c.5 0 .9-.4.9-.9v-1.6a5 5 0 0 0-3-9Zm-1.9 13.2c0 .4.3.6.6.6h2.6c.3 0 .6-.2.6-.6v-.4H6.1v.4Z"/></svg>
-              <span>Explain a topic</span>
-            </button>
-            <button type="button" class="chip" style="--cw:108;--pl:16;--ig:3.9;--iw:11.8"
-              data-prompt="Write a short story about ">
-              <svg viewBox="0 0 12 14" fill="currentColor" aria-hidden="true"><path d="M9.3.6a1.6 1.6 0 0 1 2.2 2.2L4.4 9.9l-3.2 1 1-3.2L9.3.6ZM.6 12.4h10.8v1.2H.6z"/></svg>
-              <span>Write a story</span>
-            </button>
-            <button type="button" class="chip" style="--cw:107;--pl:15.8;--ig:2.9;--iw:12.13"
-              data-prompt="Help me plan my day. Here is what I need to do: ">
-              <svg viewBox="0 0 12 13" fill="currentColor" aria-hidden="true"><path d="M3 0h1.3v1.5h3.4V0H9v1.5h1.2c1 0 1.8.8 1.8 1.8v7.9c0 1-.8 1.8-1.8 1.8H1.8c-1 0-1.8-.8-1.8-1.8V3.3c0-1 .8-1.8 1.8-1.8H3V0ZM1.3 5v6.2c0 .3.2.5.5.5h8.4c.3 0 .5-.2.5-.5V5H1.3Z"/></svg>
-              <span>Plan my day</span>
-            </button>
-          </div>
-          <div class="right">
-            <span class="model">Kepler 1</span>
-            <label class="attach" for="file" aria-label="Attach a text file" title="Attach a text file">
-              <svg viewBox="0 0 20 21" fill="currentColor" aria-hidden="true"><path d="M13.6 2.1a4.1 4.1 0 0 1 5.8 5.8l-8.3 8.3a6 6 0 0 1-8.5-8.5l7-7 1.2 1.2-7 7a4.3 4.3 0 0 0 6.1 6.1l8.3-8.3a2.4 2.4 0 0 0-3.4-3.4l-8.2 8.2a.7.7 0 0 0 1 1l7.1-7.1 1.2 1.2-7.1 7.1a2.4 2.4 0 0 1-3.4-3.4l8.2-8.2Z"/></svg>
-            </label>
-            <input type="file" id="file" accept=".txt,.md,.csv,.json,.html,.css,.js,.py,text/*">
-            <button type="submit" class="send" id="send" aria-label="Send">
-              <svg viewBox="0 0 12 14" fill="#fff" aria-hidden="true"><path d="M6 0c.3 0 .6.1.8.3l4.9 4.9a1.1 1.1 0 0 1-1.6 1.6L7.1 3.8v9.1a1.1 1.1 0 0 1-2.2 0V3.8L1.9 6.8A1.1 1.1 0 0 1 .3 5.2L5.2.3C5.4.1 5.7 0 6 0Z"/></svg>
-            </button>
-          </div>
+          <label class="ibtn attach" for="file" aria-label="Attach a text file" title="Attach a text file">
+            <svg width="21" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 6.5v9a4.5 4.5 0 0 1-9 0V5.8a3 3 0 0 1 6 0v9.4a1.5 1.5 0 0 1-3 0V7"/></svg>
+          </label>
+          <input type="file" id="file" accept=".txt,.md,.csv,.json,.html,.css,.js,.py,text/*">
+
+          <button type="button" class="ibtn" id="toolsBtn" aria-haspopup="menu" aria-expanded="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 8h9M17 8h3M4 16h3M11 16h9"/><circle cx="15" cy="8" r="2"/><circle cx="9" cy="16" r="2"/></svg>
+            <span>Tools</span>
+          </button>
+
+          <span class="spacer"></span>
+
+          <button type="button" class="ibtn model" id="modelBtn" aria-haspopup="menu" aria-expanded="false">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="#E88654" aria-hidden="true"><path d="M12 2c.6 4.6 2.9 7.4 8 8.2v1.6c-5.1.8-7.4 3.6-8 8.2h-1.6c-.6-4.6-2.9-7.4-8-8.2v-1.6c5.1-.8 7.4-3.6 8-8.2H12Z" transform="translate(.8 1)"/></svg>
+            <span class="label">Kepler-1</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+
+          <button type="submit" class="send" id="send" aria-label="Send">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg>
+          </button>
+        </div>
+
+        <div class="menu menu-tools" id="toolsMenu" role="menu" hidden>
+          <button type="button" role="menuitem" data-prompt="Explain this to me simply: ">Explain a topic</button>
+          <button type="button" role="menuitem" data-prompt="Write a short story about ">Write a story</button>
+          <button type="button" role="menuitem" data-prompt="Help me plan my day. Here is what I need to do: ">Plan my day</button>
+          <button type="button" role="menuitem" data-action="new">Start a new chat</button>
+        </div>
+
+        <div class="menu menu-model" id="modelMenu" role="menu" hidden>
+          <button type="button" role="menuitem" data-close>
+            <span><span>Kepler-1</span><span class="sub">Fast, friendly answers</span></span>
+            <svg class="check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
+          </button>
         </div>
       </form>
     </main>
@@ -391,8 +232,7 @@ a{color:inherit;text-decoration:none}
 </div>
 
 <script>
-  // Entrance teardown.
-  setTimeout(() => document.documentElement.classList.remove('anim'), 2600);
+  setTimeout(() => document.documentElement.classList.remove('anim'), 2000);
 
   // Supabase Edge Function that holds the Groq key. No key lives in this file.
   const API_URL = 'https://zxvbimdxcrslvdpqqalf.supabase.co/functions/v1/lennon-chat';
@@ -400,7 +240,7 @@ a{color:inherit;text-decoration:none}
   const STORE = 'kepler-chats';
 
   const $ = id => document.getElementById(id);
-  const frame = $('frame'), log = $('log'), box = $('box'), list = null, sendBtn = $('send');
+  const frame = $('frame'), log = $('log'), box = $('box'), sendBtn = $('send');
 
   let chats = [];
   try { chats = JSON.parse(localStorage.getItem(STORE)) || []; } catch {}
@@ -418,42 +258,51 @@ a{color:inherit;text-decoration:none}
     return d;
   }
 
-  function renderList() {
-    if (!list) return;
-    list.innerHTML = '';
-    if (!chats.length) {
-      const li = document.createElement('li');
-      li.className = 'chat-empty';
-      li.textContent = 'No chats yet. Send a message to start one.';
-      list.appendChild(li);
-      return;
-    }
-    for (const c of chats) {
-      const li = document.createElement('li');
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.textContent = c.title || 'New chat';
-      b.setAttribute('aria-current', c === current ? 'true' : 'false');
-      b.onclick = () => { if (busy) return; current = c; render(); };
-      li.appendChild(b);
-      list.appendChild(li);
-    }
-  }
-
   function render() {
     log.innerHTML = '';
     const has = current && current.messages.length;
     frame.classList.toggle('chatting', !!has);
     if (has) for (const m of current.messages) add(m.role === 'user' ? 'user' : 'ai', m.content);
-    renderList();
   }
 
+  // Grow the box with its text and light up the send button when there's something to send.
+  function sync() {
+    box.style.height = 'auto';
+    box.style.height = Math.min(box.scrollHeight, 200) + 'px';
+    sendBtn.classList.toggle('ready', !!box.value.trim() && !busy);
+  }
+  box.addEventListener('input', sync);
 
-  document.querySelectorAll('.chip').forEach(c => c.onclick = () => {
-    box.value = c.dataset.prompt;
+  // Menus
+  const menus = [[$('toolsBtn'), $('toolsMenu')], [$('modelBtn'), $('modelMenu')]];
+  function closeMenus() { for (const [b, m] of menus) { m.hidden = true; b.setAttribute('aria-expanded', 'false'); } }
+  for (const [b, m] of menus) {
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      const open = m.hidden;
+      closeMenus();
+      m.hidden = !open;
+      b.setAttribute('aria-expanded', String(open));
+    });
+  }
+  document.addEventListener('click', e => { if (!e.target.closest('.menu')) closeMenus(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenus(); });
+
+  $('toolsMenu').addEventListener('click', e => {
+    const item = e.target.closest('button');
+    if (!item) return;
+    closeMenus();
+    if (item.dataset.action === 'new') {
+      if (busy) return;
+      current = null; render();
+    } else {
+      box.value = item.dataset.prompt;
+    }
+    sync();
     box.focus();
     box.setSelectionRange(box.value.length, box.value.length);
   });
+  $('modelMenu').addEventListener('click', () => closeMenus());
 
   $('file').onchange = async e => {
     const f = e.target.files[0];
@@ -462,6 +311,7 @@ a{color:inherit;text-decoration:none}
     if (f.size > 12000) { frame.classList.add('chatting'); add('ai error', 'That file is too big. Attach a text file under 12 KB.'); return; }
     const text = await f.text();
     box.value = (box.value ? box.value + '\n\n' : '') + `Here is ${f.name}:\n${text}`;
+    sync();
     box.focus();
   };
 
@@ -470,7 +320,7 @@ a{color:inherit;text-decoration:none}
     if (!text || busy) return;
     if (text.length > 4000) { frame.classList.add('chatting'); add('ai error', 'That message is too long. Keep it under 4,000 characters.'); return; }
     busy = true; sendBtn.disabled = true;
-    box.value = '';
+    box.value = ''; sync();
     if (!current) {
       current = { id: Date.now(), title: text.slice(0, 40), messages: [] };
       chats.unshift(current);
@@ -497,7 +347,7 @@ a{color:inherit;text-decoration:none}
       out.classList.add('error');
       out.textContent = 'Could not reach Kepler AI. Check your connection and try again.';
     } finally {
-      busy = false; sendBtn.disabled = false;
+      busy = false; sendBtn.disabled = false; sync();
       log.scrollTop = log.scrollHeight;
       box.focus();
     }
@@ -508,7 +358,7 @@ a{color:inherit;text-decoration:none}
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
   });
 
-  render();
+  render(); sync();
 </script>
 </body>
 </html>
