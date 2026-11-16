@@ -113,36 +113,67 @@ Deno.serve(async (req) => {
     return json({ error: "That chat is too long. Start a new chat." }, 400, origin);
   }
 
-  const tried = new Set<string>();
-  for (const eng of picked.chain) {
-    const key2 = eng.id + (eng.effort ?? "");
-    if (tried.has(eng.id + "!")) continue; // engine already found missing
-    if (tried.has(key2)) continue;
-    tried.add(key2);
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+  const sys = { role: "system", content: system(picked.name, picked.style) };
+  const MISSING = /model_not_found|does not exist|decommissioned|no longer supported|not found|unknown model/i;
+  const groq = (payload: Record<string, unknown>) =>
+    fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: eng.id,
-        max_tokens: eng.tokens,
-        ...(eng.effort ? { reasoning_effort: eng.effort } : {}),
-        messages: [{ role: "system", content: system(picked.name, picked.style) }, ...messages],
-      }),
+      body: JSON.stringify({ ...payload, messages: [sys, ...messages] }),
     });
 
-    if (res.ok) {
-      const data = await res.json();
-      const reply = data?.choices?.[0]?.message?.content ?? "";
-      return json({ reply }, 200, origin);
+  // Try one engine: first with its tuned settings, then (if Groq refuses a setting) with plain ones.
+  // Returns a Response to send back, "next" to try another engine, or "missing" if the model is gone.
+  async function attempt(id: string, tuned: Record<string, unknown>): Promise<Response | "next" | "missing"> {
+    const payloads = Object.keys(tuned).length ? [{ model: id, ...tuned }, { model: id }] : [{ model: id }];
+    for (const payload of payloads) {
+      const res = await groq(payload);
+      if (res.ok) {
+        const data = await res.json();
+        const reply = data?.choices?.[0]?.message?.content ?? "";
+        if (reply.trim()) return json({ reply }, 200, origin);
+        console.error(`groq ${id}: empty reply`, JSON.stringify(payload).slice(0, 120));
+        continue;
+      }
+      const text = await res.text();
+      console.error(`groq ${id} ${res.status}: ${text.slice(0, 400)}`);
+      if (res.status === 401) return json({ error: "The Groq key was rejected. Check the GROQ_API_KEY secret." }, 502, origin);
+      if (res.status === 429) return json({ error: "Too many messages. Wait a moment and try again." }, 429, origin);
+      if ((res.status === 404 || res.status === 400) && MISSING.test(text)) return "missing";
+      if (res.status >= 500) return "next";
+      // Other 400s: Groq refused a setting; loop retries with plain settings.
     }
+    return "next";
+  }
 
-    const text = await res.text();
-    // A retired or unknown model: try the next one.
-    if ((res.status === 400 || res.status === 404) && /model/i.test(text)) { tried.add(eng.id + "!"); continue; }
-    if (res.status === 401) return json({ error: "The Groq key was rejected. Check the GROQ_API_KEY secret." }, 502, origin);
-    if (res.status === 429) return json({ error: "Too many messages. Wait a moment and try again." }, 429, origin);
-    console.error("Groq error", res.status, text);
-    return json({ error: "Kepler AI had a problem. Try again." }, 502, origin);
+  const tried = new Set<string>();
+  const gone = new Set<string>();
+  for (const eng of picked.chain) {
+    const k = eng.id + (eng.effort ?? "");
+    if (gone.has(eng.id) || tried.has(k)) continue;
+    tried.add(k);
+    const out = await attempt(eng.id, { max_tokens: eng.tokens, ...(eng.effort ? { reasoning_effort: eng.effort } : {}) });
+    if (out === "missing") { gone.add(eng.id); continue; }
+    if (out !== "next") return out;
+  }
+
+  // Last resort: ask Groq which models this key can use and try a sensible one.
+  try {
+    const list = await fetch("https://api.groq.com/openai/v1/models", { headers: { Authorization: `Bearer ${key}` } });
+    if (list.ok) {
+      const ids: string[] = ((await list.json())?.data ?? []).map((m: { id: string }) => m.id)
+        .filter((id: string) => !/whisper|tts|guard|playai|orpheus|prompt-guard|compound/i.test(id) && !gone.has(id));
+      const prefer = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
+      ids.sort((a, b) => (prefer.indexOf(a) + 1 || 99) - (prefer.indexOf(b) + 1 || 99));
+      for (const id of ids.slice(0, 4)) {
+        const out = await attempt(id, {});
+        if (out instanceof Response) return out;
+      }
+    } else {
+      console.error(`groq models ${list.status}: ${(await list.text()).slice(0, 300)}`);
+    }
+  } catch (e) {
+    console.error("groq models list failed", String(e));
   }
 
   return json({ error: "No Groq model is available right now." }, 502, origin);
