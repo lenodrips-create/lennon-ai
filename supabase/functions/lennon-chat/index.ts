@@ -28,17 +28,20 @@ const FAMILY: Record<string, { name: string; engines: number[] }> = {
   pan:   { name: "Pan",   engines: [1, 2, 3, 4, 4, 5, 6, 7] },
   janus: { name: "Janus", engines: [3, 4, 5, 6, 6, 7, 7, 7] },
 };
-function pickModel(value: unknown) {
+function pickModel(value: unknown, effortIn?: unknown) {
   const parts: string[] = typeof value === "string" ? value.split("-") : [];
   const fam = parts[0] ?? "", ver = parts[1] ?? "5.5";
   const family = fam in FAMILY ? fam : "titan";
   const vi = Math.max(0, VERSIONS.indexOf(ver));
   const start = FAMILY[family].engines[vi];
   const level = (VERSIONS.length - 1 - vi) / (VERSIONS.length - 1); // 0 (v2) .. 1 (v5.5)
+  // Effort (chosen in the site's model menu) sets how hard thinking engines reason.
+  const effort = effortIn === "low" || effortIn === "medium" || effortIn === "high" ? effortIn : null;
+  const extra = effort === "high" ? " Think carefully before answering." : effort === "low" ? " Answer quickly and briefly." : "";
   return {
     name: `${FAMILY[family].name} ${VERSIONS[vi]}`,
-    chain: ENGINES.slice(start),
-    style: level >= 0.7 ? "Give clear, thorough answers." : level >= 0.35 ? "Keep replies fairly short." : "Keep replies very short and simple.",
+    chain: ENGINES.slice(start).map((e) => (e.effort && effort ? { ...e, effort } : e)),
+    style: (level >= 0.7 ? "Give clear, thorough answers." : level >= 0.35 ? "Keep replies fairly short." : "Keep replies very short and simple.") + extra,
   };
 }
 
@@ -95,7 +98,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
     messages = body.messages;
-    picked = pickModel(body.model);
+    picked = pickModel(body.model, body.effort);
   } catch {
     return json({ error: "Bad request." }, 400, origin);
   }

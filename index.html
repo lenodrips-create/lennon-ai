@@ -147,18 +147,21 @@ body{
   transform:translateY(-8px);
 }
 .menu-tools{left:44px}
-.menu-model{right:56px;width:min(392px,calc(100vw - 40px));padding:8px}
-.fam{padding:8px 8px 10px}
-.fam+.fam{border-top:1px solid var(--line)}
-.fam-head{margin-bottom:8px}
-.fam-head .mname{font-size:15px}
-.vers{display:flex;flex-wrap:wrap;gap:4px}
-.menu .ver{
-  width:auto;flex:1 0 38px;justify-content:center;padding:6px 0;border-radius:9px;font-size:13.5px;
-  font-variant-numeric:tabular-nums;color:var(--ink-soft);border:1px solid var(--line);
+.menu-model{right:56px;width:min(340px,calc(100vw - 40px));padding:6px}
+.mm-row{justify-content:space-between}
+.menu .mm-row{padding:11px 14px;font-size:17px;border-radius:12px}
+.mm-name{display:flex;align-items:center;gap:10px;min-width:0}
+.mm-pill{
+  font-size:12.5px;color:var(--ink-soft);background:var(--hover);border-radius:999px;padding:3px 10px;white-space:nowrap;
 }
-.menu .ver:hover{background:var(--hover);color:var(--ink)}
-.menu .ver[aria-checked="true"]{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
+.mm-right{margin-left:auto;display:flex;align-items:center;gap:8px;color:var(--muted);font-size:16px;font-variant-numeric:tabular-nums}
+.mm-tick{color:#3b82f6}
+.mm-sep{height:1px;background:var(--line);margin:6px 10px}
+.mm-back{color:var(--ink);font-weight:500}
+.menu .mm-back{font-size:16px;padding:10px 12px}
+.mm-group{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:10px 14px 4px}
+.mm-scroll{max-height:min(360px,55vh);overflow-y:auto;scrollbar-width:thin}
+.mm-desc{display:block;font-size:13px;color:var(--muted);margin-top:2px}
 .menu button{
   width:100%;display:flex;align-items:center;gap:10px;text-align:left;
   padding:10px 12px;border-radius:12px;font-size:15px;cursor:pointer;
@@ -420,18 +423,6 @@ body.booting .frame,body.booting .ud,body.booting .side,body.signed-out .frame,b
         </div>
 
         <div class="menu menu-model" id="modelMenu" role="menu" hidden>
-          <div class="fam">
-            <div class="fam-head"><span class="mname">Titan</span><span class="sub">Our smartest family for hard questions</span></div>
-            <div class="vers" role="group" aria-label="Titan versions"><button type="button" role="menuitemradio" class="ver" data-model="titan-2" aria-checked="false">2</button><button type="button" role="menuitemradio" class="ver" data-model="titan-2.5" aria-checked="false">2.5</button><button type="button" role="menuitemradio" class="ver" data-model="titan-3" aria-checked="false">3</button><button type="button" role="menuitemradio" class="ver" data-model="titan-3.5" aria-checked="false">3.5</button><button type="button" role="menuitemradio" class="ver" data-model="titan-4" aria-checked="false">4</button><button type="button" role="menuitemradio" class="ver" data-model="titan-4.5" aria-checked="false">4.5</button><button type="button" role="menuitemradio" class="ver" data-model="titan-5" aria-checked="false">5</button><button type="button" role="menuitemradio" class="ver" data-model="titan-5.5" aria-checked="false">5.5</button></div>
-          </div>
-          <div class="fam">
-            <div class="fam-head"><span class="mname">Pan</span><span class="sub">Balanced speed and smarts</span></div>
-            <div class="vers" role="group" aria-label="Pan versions"><button type="button" role="menuitemradio" class="ver" data-model="pan-2" aria-checked="false">2</button><button type="button" role="menuitemradio" class="ver" data-model="pan-2.5" aria-checked="false">2.5</button><button type="button" role="menuitemradio" class="ver" data-model="pan-3" aria-checked="false">3</button><button type="button" role="menuitemradio" class="ver" data-model="pan-3.5" aria-checked="false">3.5</button><button type="button" role="menuitemradio" class="ver" data-model="pan-4" aria-checked="false">4</button><button type="button" role="menuitemradio" class="ver" data-model="pan-4.5" aria-checked="false">4.5</button><button type="button" role="menuitemradio" class="ver" data-model="pan-5" aria-checked="false">5</button><button type="button" role="menuitemradio" class="ver" data-model="pan-5.5" aria-checked="false">5.5</button></div>
-          </div>
-          <div class="fam">
-            <div class="fam-head"><span class="mname">Janus</span><span class="sub">Fastest, for quick questions</span></div>
-            <div class="vers" role="group" aria-label="Janus versions"><button type="button" role="menuitemradio" class="ver" data-model="janus-2" aria-checked="false">2</button><button type="button" role="menuitemradio" class="ver" data-model="janus-2.5" aria-checked="false">2.5</button><button type="button" role="menuitemradio" class="ver" data-model="janus-3" aria-checked="false">3</button><button type="button" role="menuitemradio" class="ver" data-model="janus-3.5" aria-checked="false">3.5</button><button type="button" role="menuitemradio" class="ver" data-model="janus-4" aria-checked="false">4</button><button type="button" role="menuitemradio" class="ver" data-model="janus-4.5" aria-checked="false">4.5</button><button type="button" role="menuitemradio" class="ver" data-model="janus-5" aria-checked="false">5</button><button type="button" role="menuitemradio" class="ver" data-model="janus-5.5" aria-checked="false">5.5</button></div>
-          </div>
         </div>
       </form>
     </main>
@@ -773,20 +764,70 @@ body.booting .frame,body.booting .ud,body.booting .side,body.signed-out .frame,b
     sync(); box.focus();
     box.setSelectionRange(box.value.length, box.value.length);
   });
-  // Models: Titan (best), Pan (middle), Janus (fastest). Choice is remembered in this browser.
+  // Models: Titan (best), Pan (middle), Janus (fastest), versions 2 to 5.5.
+  // The newest of each family is pinned; the rest live under "More models". Choices are remembered in this browser.
   const FAMILIES = { titan: 'Titan', pan: 'Pan', janus: 'Janus' };
   const VERSIONS = ['2', '2.5', '3', '3.5', '4', '4.5', '5', '5.5'];
+  const PINNED = ['titan-5.5', 'pan-5.5', 'janus-5.5'];
+  const PILLS = { 'titan-5.5': 'Smartest', 'janus-5.5': 'Fastest' };
+  const EFFORTS = { low: ['Low', 'Quick answers, less thinking'], medium: ['Medium', 'A balance of speed and thinking'], high: ['High', 'Thinks longest for hard questions'] };
   const modelName = m => FAMILIES[m.split('-')[0]] + ' ' + m.split('-')[1];
   let model = safe(() => localStorage.getItem('kepler-model'), null) || '';
   if (!(model.split('-')[0] in FAMILIES) || !VERSIONS.includes(model.split('-')[1])) model = 'titan-5.5';
+  let effort = safe(() => localStorage.getItem('kepler-effort'), null);
+  if (!EFFORTS[effort]) effort = 'medium';
+  let mmView = 'main';
+  const TICK = '<svg class="mm-tick" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4.5 12.5 5 5L20 7"/></svg>';
+  const CHEV = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
+  const BACK = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>';
+  const esc = t => t.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  function modelRow(m, right) {
+    const on = m === model;
+    const pill = PILLS[m] ? `<span class="mm-pill">${PILLS[m]}</span>` : '';
+    return `<button type="button" class="mm-row" role="menuitemradio" aria-checked="${on}" data-model="${m}">
+      <span class="mm-name"><span>${esc(modelName(m))}</span>${pill}</span>
+      <span class="mm-right">${on ? TICK : (right || '')}</span></button>`;
+  }
   function paintModel() {
     $('modelLabel').textContent = modelName(model);
-    $('modelMenu').querySelectorAll('[data-model]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.model === model)));
+    const menu = $('modelMenu');
+    if (mmView === 'effort') {
+      menu.innerHTML = `<button type="button" class="mm-back" data-view="main">${BACK}Effort</button><div class="mm-sep"></div>` +
+        Object.entries(EFFORTS).map(([k, [n, d]]) =>
+          `<button type="button" class="mm-row" role="menuitemradio" aria-checked="${k === effort}" data-effort="${k}">
+            <span><span>${n}</span><span class="mm-desc">${d}</span></span>
+            <span class="mm-right">${k === effort ? TICK : ''}</span></button>`).join('');
+    } else if (mmView === 'more') {
+      let html = `<button type="button" class="mm-back" data-view="main">${BACK}More models</button><div class="mm-sep"></div><div class="mm-scroll">`;
+      for (const f of Object.keys(FAMILIES)) {
+        html += `<p class="mm-group">${FAMILIES[f]}</p>`;
+        for (const v of [...VERSIONS].reverse()) { const m = `${f}-${v}`; if (!PINNED.includes(m)) html += modelRow(m); }
+      }
+      menu.innerHTML = html + '</div>';
+    } else {
+      const extra = PINNED.includes(model) ? '' : `<span>${esc(modelName(model))}</span>`;
+      menu.innerHTML = PINNED.map((m, i) => modelRow(m, String(i + 1))).join('') +
+        `<div class="mm-sep"></div>
+         <button type="button" class="mm-row" data-view="effort"><span>Effort</span><span class="mm-right"><span>${EFFORTS[effort][0]}</span>${CHEV}</span></button>
+         <div class="mm-sep"></div>
+         <button type="button" class="mm-row" data-view="more"><span>More models</span><span class="mm-right">${extra}${CHEV}</span></button>`;
+    }
   }
+  function pickModel(m) { model = m; safe(() => localStorage.setItem('kepler-model', model)); mmView = 'main'; paintModel(); closeMenus(); box.focus(); }
   $('modelMenu').addEventListener('click', e => {
-    const b = e.target.closest('[data-model]');
-    if (b) { model = b.dataset.model; safe(() => localStorage.setItem('kepler-model', model)); paintModel(); }
-    closeMenus(); box.focus();
+    e.stopPropagation();
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.view) { mmView = b.dataset.view; paintModel(); return; }
+    if (b.dataset.effort) { effort = b.dataset.effort; safe(() => localStorage.setItem('kepler-effort', effort)); mmView = 'main'; paintModel(); return; }
+    if (b.dataset.model) pickModel(b.dataset.model);
+  });
+  $('modelBtn').addEventListener('click', () => { mmView = 'main'; paintModel(); });
+  document.addEventListener('keydown', e => {
+    if ($('modelMenu').hidden || mmView !== 'main' || e.target === box) return;
+    const n = Number(e.key);
+    if (n >= 1 && n <= PINNED.length) { e.preventDefault(); pickModel(PINNED[n - 1]); }
   });
   paintModel();
 
@@ -823,7 +864,7 @@ body.booting .frame,body.booting .ud,body.booting .side,body.signed-out .frame,b
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + s.session.access_token },
-        body: JSON.stringify({ model, messages: chat.messages.slice(-MAX_MESSAGES) }),
+        body: JSON.stringify({ model, effort, messages: chat.messages.slice(-MAX_MESSAGES) }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { out.classList.add('error'); out.textContent = data.error || 'Something went wrong. Try again.'; return; }
