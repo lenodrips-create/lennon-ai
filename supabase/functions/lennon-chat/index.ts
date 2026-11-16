@@ -7,16 +7,43 @@ const ALLOWED_ORIGINS = [
   "http://127.0.0.1:8000",
 ];
 
-// Kepler AI models, best to fastest. Each maps to Groq models, tried in order;
-// if a Groq model is retired, the next one is used.
-const TIERS: Record<string, { name: string; groq: string[] }> = {
-  titan: { name: "Titan 5.5", groq: ["openai/gpt-oss-120b", "llama-3.3-70b-versatile"] },
-  pan:   { name: "Pan 5",     groq: ["llama-3.3-70b-versatile", "openai/gpt-oss-20b", "openai/gpt-oss-120b"] },
-  janus: { name: "Janus 4.5", groq: ["llama-3.1-8b-instant", "openai/gpt-oss-20b", "llama-3.3-70b-versatile"] },
+// Kepler AI models: three families (Titan best, Pan middle, Janus fastest), versions 2 to 5.5.
+// Each version runs on a real Groq engine. Higher versions get stronger engines, more thinking
+// effort and longer replies. If an engine is retired, the next lower one is used.
+type Engine = { id: string; effort?: "low" | "medium" | "high"; tokens: number };
+const ENGINES: Engine[] = [
+  { id: "openai/gpt-oss-120b", effort: "high", tokens: 8192 },   // 0 strongest
+  { id: "openai/gpt-oss-120b", effort: "medium", tokens: 6144 }, // 1
+  { id: "openai/gpt-oss-120b", effort: "low", tokens: 4096 },    // 2
+  { id: "llama-3.3-70b-versatile", tokens: 1536 },               // 3
+  { id: "openai/gpt-oss-20b", effort: "medium", tokens: 4096 },  // 4
+  { id: "openai/gpt-oss-20b", effort: "low", tokens: 3072 },     // 5
+  { id: "llama-3.1-8b-instant", tokens: 1024 },                  // 6
+  { id: "llama-3.1-8b-instant", tokens: 512 },                   // 7 lightest
+];
+const VERSIONS = ["5.5", "5", "4.5", "4", "3.5", "3", "2.5", "2"];
+const FAMILY: Record<string, { name: string; engines: number[] }> = {
+  //            5.5 5  4.5 4  3.5 3  2.5 2
+  titan: { name: "Titan", engines: [0, 1, 2, 3, 3, 4, 5, 6] },
+  pan:   { name: "Pan",   engines: [1, 2, 3, 4, 4, 5, 6, 7] },
+  janus: { name: "Janus", engines: [3, 4, 5, 6, 6, 7, 7, 7] },
 };
+function pickModel(value: unknown) {
+  const parts: string[] = typeof value === "string" ? value.split("-") : [];
+  const fam = parts[0] ?? "", ver = parts[1] ?? "5.5";
+  const family = fam in FAMILY ? fam : "titan";
+  const vi = Math.max(0, VERSIONS.indexOf(ver));
+  const start = FAMILY[family].engines[vi];
+  const level = (VERSIONS.length - 1 - vi) / (VERSIONS.length - 1); // 0 (v2) .. 1 (v5.5)
+  return {
+    name: `${FAMILY[family].name} ${VERSIONS[vi]}`,
+    chain: ENGINES.slice(start),
+    style: level >= 0.7 ? "Give clear, thorough answers." : level >= 0.35 ? "Keep replies fairly short." : "Keep replies very short and simple.",
+  };
+}
 
-const system = (model: string) =>
-  `Your name is Kepler AI and you are running the ${model} model. You are a simple, friendly chat assistant. Reply briefly in plain text, no markdown.`;
+const system = (name: string, style: string) =>
+  `Your name is Kepler AI and you are running the ${name} model. You are a friendly chat assistant. ${style} Reply in plain text, no markdown.`;
 
 const MAX_MESSAGES = 30;
 const MAX_CHARS = 4000;
@@ -64,11 +91,11 @@ Deno.serve(async (req) => {
   if (!key) return json({ error: "Kepler AI is not set up yet: the Groq key is missing." }, 500, origin);
 
   let messages: { role: string; content: string }[];
-  let tier = TIERS.titan;
+  let picked = pickModel("titan-5.5");
   try {
     const body = await req.json();
     messages = body.messages;
-    if (typeof body.model === "string" && TIERS[body.model]) tier = TIERS[body.model];
+    picked = pickModel(body.model);
   } catch {
     return json({ error: "Bad request." }, 400, origin);
   }
@@ -83,14 +110,20 @@ Deno.serve(async (req) => {
     return json({ error: "That chat is too long. Start a new chat." }, 400, origin);
   }
 
-  for (const model of tier.groq) {
+  const tried = new Set<string>();
+  for (const eng of picked.chain) {
+    const key2 = eng.id + (eng.effort ?? "");
+    if (tried.has(eng.id + "!")) continue; // engine already found missing
+    if (tried.has(key2)) continue;
+    tried.add(key2);
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model,
-        max_tokens: 1024,
-        messages: [{ role: "system", content: system(tier.name) }, ...messages],
+        model: eng.id,
+        max_tokens: eng.tokens,
+        ...(eng.effort ? { reasoning_effort: eng.effort } : {}),
+        messages: [{ role: "system", content: system(picked.name, picked.style) }, ...messages],
       }),
     });
 
@@ -102,7 +135,7 @@ Deno.serve(async (req) => {
 
     const text = await res.text();
     // A retired or unknown model: try the next one.
-    if ((res.status === 400 || res.status === 404) && /model/i.test(text)) continue;
+    if ((res.status === 400 || res.status === 404) && /model/i.test(text)) { tried.add(eng.id + "!"); continue; }
     if (res.status === 401) return json({ error: "The Groq key was rejected. Check the GROQ_API_KEY secret." }, 502, origin);
     if (res.status === 429) return json({ error: "Too many messages. Wait a moment and try again." }, 429, origin);
     console.error("Groq error", res.status, text);

@@ -147,7 +147,18 @@ body{
   transform:translateY(-8px);
 }
 .menu-tools{left:44px}
-.menu-model{right:56px}
+.menu-model{right:56px;width:min(392px,calc(100vw - 40px));padding:8px}
+.fam{padding:8px 8px 10px}
+.fam+.fam{border-top:1px solid var(--line)}
+.fam-head{margin-bottom:8px}
+.fam-head .mname{font-size:15px}
+.vers{display:flex;flex-wrap:wrap;gap:4px}
+.menu .ver{
+  width:auto;flex:1 0 38px;justify-content:center;padding:6px 0;border-radius:9px;font-size:13.5px;
+  font-variant-numeric:tabular-nums;color:var(--ink-soft);border:1px solid var(--line);
+}
+.menu .ver:hover{background:var(--hover);color:var(--ink)}
+.menu .ver[aria-checked="true"]{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
 .menu button{
   width:100%;display:flex;align-items:center;gap:10px;text-align:left;
   padding:10px 12px;border-radius:12px;font-size:15px;cursor:pointer;
@@ -160,11 +171,11 @@ body{
 
 /* ── Chats sidebar (left) ── */
 .side{
-  position:fixed;z-index:20;left:max(16px,env(safe-area-inset-left));top:max(16px,env(safe-area-inset-top));
-  bottom:calc(max(18px,env(safe-area-inset-bottom)) + 52px);width:260px;
-  display:flex;flex-direction:column;gap:10px;padding:12px;
-  background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:24px;
-  box-shadow:0 1px 2px rgba(0,0,0,.04),0 12px 40px rgba(0,0,0,.16);
+  position:fixed;z-index:20;left:0;top:0;bottom:0;width:calc(260px + env(safe-area-inset-left,0px));
+  display:flex;flex-direction:column;gap:10px;
+  padding:max(14px,env(safe-area-inset-top)) 12px calc(max(18px,env(safe-area-inset-bottom)) + 58px) calc(12px + env(safe-area-inset-left,0px));
+  background:var(--card);color:var(--ink);border-right:1px solid var(--line);border-radius:0;
+  box-shadow:4px 0 24px rgba(0,0,0,.10);
 }
 .side-head{display:flex;align-items:center;justify-content:space-between;padding:4px 6px 0}
 .side-title{font-family:var(--font-display);font-weight:600;font-size:17px}
@@ -183,7 +194,7 @@ body{
 .side-list button[aria-current="true"]{background:var(--hover);color:var(--ink);font-weight:500}
 .side-empty{font-size:13.5px;color:var(--muted);padding:8px 10px;line-height:1.45}
 @media (min-width:900px){
-  .frame{padding-left:calc(max(16px,env(safe-area-inset-left)) + 276px)}
+  .frame{padding-left:calc(env(safe-area-inset-left,0px) + 276px)}
 }
 @media (max-width:899px){
   .side{display:none}
@@ -408,18 +419,18 @@ body.booting .frame,body.booting .ud,body.booting .side,body.signed-out .frame,b
         </div>
 
         <div class="menu menu-model" id="modelMenu" role="menu" hidden>
-          <button type="button" role="menuitemradio" data-model="titan" aria-checked="false">
-            <span><span class="mname">Titan 5.5</span><span class="sub">Our smartest model for hard questions</span></span>
-            <svg class="check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
-          </button>
-          <button type="button" role="menuitemradio" data-model="pan" aria-checked="false">
-            <span><span class="mname">Pan 5</span><span class="sub">Balanced speed and smarts</span></span>
-            <svg class="check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
-          </button>
-          <button type="button" role="menuitemradio" data-model="janus" aria-checked="false">
-            <span><span class="mname">Janus 4.5</span><span class="sub">Fastest, for quick questions</span></span>
-            <svg class="check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
-          </button>
+          <div class="fam">
+            <div class="fam-head"><span class="mname">Titan</span><span class="sub">Our smartest family for hard questions</span></div>
+            <div class="vers" role="group" aria-label="Titan versions"><button type="button" role="menuitemradio" class="ver" data-model="titan-2" aria-checked="false">2</button><button type="button" role="menuitemradio" class="ver" data-model="titan-2.5" aria-checked="false">2.5</button><button type="button" role="menuitemradio" class="ver" data-model="titan-3" aria-checked="false">3</button><button type="button" role="menuitemradio" class="ver" data-model="titan-3.5" aria-checked="false">3.5</button><button type="button" role="menuitemradio" class="ver" data-model="titan-4" aria-checked="false">4</button><button type="button" role="menuitemradio" class="ver" data-model="titan-4.5" aria-checked="false">4.5</button><button type="button" role="menuitemradio" class="ver" data-model="titan-5" aria-checked="false">5</button><button type="button" role="menuitemradio" class="ver" data-model="titan-5.5" aria-checked="false">5.5</button></div>
+          </div>
+          <div class="fam">
+            <div class="fam-head"><span class="mname">Pan</span><span class="sub">Balanced speed and smarts</span></div>
+            <div class="vers" role="group" aria-label="Pan versions"><button type="button" role="menuitemradio" class="ver" data-model="pan-2" aria-checked="false">2</button><button type="button" role="menuitemradio" class="ver" data-model="pan-2.5" aria-checked="false">2.5</button><button type="button" role="menuitemradio" class="ver" data-model="pan-3" aria-checked="false">3</button><button type="button" role="menuitemradio" class="ver" data-model="pan-3.5" aria-checked="false">3.5</button><button type="button" role="menuitemradio" class="ver" data-model="pan-4" aria-checked="false">4</button><button type="button" role="menuitemradio" class="ver" data-model="pan-4.5" aria-checked="false">4.5</button><button type="button" role="menuitemradio" class="ver" data-model="pan-5" aria-checked="false">5</button><button type="button" role="menuitemradio" class="ver" data-model="pan-5.5" aria-checked="false">5.5</button></div>
+          </div>
+          <div class="fam">
+            <div class="fam-head"><span class="mname">Janus</span><span class="sub">Fastest, for quick questions</span></div>
+            <div class="vers" role="group" aria-label="Janus versions"><button type="button" role="menuitemradio" class="ver" data-model="janus-2" aria-checked="false">2</button><button type="button" role="menuitemradio" class="ver" data-model="janus-2.5" aria-checked="false">2.5</button><button type="button" role="menuitemradio" class="ver" data-model="janus-3" aria-checked="false">3</button><button type="button" role="menuitemradio" class="ver" data-model="janus-3.5" aria-checked="false">3.5</button><button type="button" role="menuitemradio" class="ver" data-model="janus-4" aria-checked="false">4</button><button type="button" role="menuitemradio" class="ver" data-model="janus-4.5" aria-checked="false">4.5</button><button type="button" role="menuitemradio" class="ver" data-model="janus-5" aria-checked="false">5</button><button type="button" role="menuitemradio" class="ver" data-model="janus-5.5" aria-checked="false">5.5</button></div>
+          </div>
         </div>
       </form>
     </main>
@@ -762,11 +773,13 @@ body.booting .frame,body.booting .ud,body.booting .side,body.signed-out .frame,b
     box.setSelectionRange(box.value.length, box.value.length);
   });
   // Models: Titan (best), Pan (middle), Janus (fastest). Choice is remembered in this browser.
-  const MODEL_NAMES = { titan: 'Titan 5.5', pan: 'Pan 5', janus: 'Janus 4.5' };
-  let model = safe(() => localStorage.getItem('kepler-model'), null);
-  if (!MODEL_NAMES[model]) model = 'titan';
+  const FAMILIES = { titan: 'Titan', pan: 'Pan', janus: 'Janus' };
+  const VERSIONS = ['2', '2.5', '3', '3.5', '4', '4.5', '5', '5.5'];
+  const modelName = m => FAMILIES[m.split('-')[0]] + ' ' + m.split('-')[1];
+  let model = safe(() => localStorage.getItem('kepler-model'), null) || '';
+  if (!(model.split('-')[0] in FAMILIES) || !VERSIONS.includes(model.split('-')[1])) model = 'titan-5.5';
   function paintModel() {
-    $('modelLabel').textContent = MODEL_NAMES[model];
+    $('modelLabel').textContent = modelName(model);
     $('modelMenu').querySelectorAll('[data-model]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.model === model)));
   }
   $('modelMenu').addEventListener('click', e => {
