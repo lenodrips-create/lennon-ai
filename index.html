@@ -5,11 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kepler AI</title>
 <meta name="description" content="Kepler AI is a simple, friendly AI you can chat with.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=block">
+<link rel="preload" href="fonts/Fredoka.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/Ubuntu-Regular.woff2" as="font" type="font/woff2" crossorigin>
 <script>document.documentElement.classList.add('anim')</script>
 <style>
+@font-face{font-family:"Fredoka";src:url("fonts/Fredoka.woff2") format("woff2");font-weight:300 700;font-stretch:75% 125%;font-display:block}
+@font-face{font-family:"Ubuntu";src:url("fonts/Ubuntu-Regular.woff2") format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Ubuntu";src:url("fonts/Ubuntu-Medium.woff2") format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:"IBM Plex Serif";src:url("fonts/IBMPlexSerif-Regular.woff2") format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"IBM Plex Serif";src:url("fonts/IBMPlexSerif-Italic.woff2") format("woff2");font-weight:400;font-style:italic;font-display:swap}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 button,input,textarea{font:inherit;color:inherit;background:none;border:0}
 img,svg{display:block}
@@ -19,8 +23,9 @@ img,svg{display:block}
   --vu:0.09920635vh;
   --inset-top:41;--inset-bottom:106;
 
-  --font-text:Inter,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  --font-display:Inter,var(--font-text);
+  --font-text:Ubuntu,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --font-display:Fredoka,var(--font-text);
+  --font-reply:"IBM Plex Serif",Georgia,"Times New Roman",serif;
 
   --brand-x:225;--brand-y:45;--mark:34;--brand-gap:12;--brand-fs:18.49;
   --links-y:50.5;--links-gap:50;--links-fs:21.69;
@@ -30,7 +35,7 @@ img,svg{display:block}
   --h1-y:323;--h1-fs:36.25;--display-ls:0.0018em;
   --nav-ls:-0.0115em;--brand-ls:-0.0154em;--cta-ls:-0.0127em;--body-ls:0.007em;
   --proof-ls:0.0065em;
-  --w-display:410;--w-nav:400;--w-brand:500;--w-cta:520;--w-label:500;--w-model:400;--w-proof:480;
+  --w-display:500;--w-nav:400;--w-brand:500;--w-cta:500;--w-label:500;--w-model:400;--w-proof:400;
 
   --card-x:425;--card-y:413;--card-w:708;--card-h:143;--card-r:26;
   --ph-fs:9.97;
@@ -78,7 +83,7 @@ a{color:inherit;text-decoration:none}
 .brand{display:flex;align-items:center;gap:calc(var(--brand-gap)*var(--u));cursor:pointer}
 .mark{width:calc(var(--mark)*var(--u));height:calc(var(--mark)*var(--u))}
 .wordmark{
-  font-family:var(--font-display);font-variation-settings:"opsz" 32;
+  font-family:var(--font-display);
   font-size:calc(var(--brand-fs)*var(--u));font-weight:var(--w-brand);letter-spacing:var(--brand-ls);
   transform:translateY(calc(1*var(--u)));text-shadow:0 calc(1*var(--u)) calc(10*var(--u)) rgba(0,0,0,.30);
 }
@@ -117,7 +122,7 @@ a{color:inherit;text-decoration:none}
   gap:calc(var(--hero-gap)*var(--vu));padding-bottom:calc(4*var(--vu));
 }
 .h1{
-  font-family:var(--font-display);font-variation-settings:"opsz" 32;
+  font-family:var(--font-display);
   font-size:calc(var(--h1-fs)*var(--u));font-weight:var(--w-display);line-height:1.10;letter-spacing:var(--display-ls);
   text-align:center;text-wrap:balance;text-shadow:0 calc(2*var(--u)) calc(22*var(--u)) rgba(0,0,0,.30);
 }
@@ -140,9 +145,9 @@ a{color:inherit;text-decoration:none}
   box-shadow:inset 0 0 0 1px rgba(214,228,255,.12);
 }
 .msg.user{align-self:flex-end;background:rgba(244,157,112,.22);box-shadow:inset 0 0 0 1px rgba(251,188,148,.28)}
-.msg.ai{align-self:flex-start;color:#ececee}
+.msg.ai{align-self:flex-start;color:#ececee;font-family:var(--font-reply);line-height:1.6}
 .msg.ai::before{
-  content:"KEPLER AI";display:block;margin-bottom:4px;
+  content:"KEPLER AI";display:block;margin-bottom:4px;font-family:var(--font-display);
   font-size:11px;font-weight:600;letter-spacing:.09em;color:#F8B285;
 }
 .msg.error{color:#ffcfb4}
@@ -210,7 +215,7 @@ a{color:inherit;text-decoration:none}
 /* ── Footer ── */
 .proof{flex:none;display:flex;flex-direction:column;align-items:center;gap:calc(52.3*var(--vu))}
 .by{
-  font-family:var(--font-display);font-variation-settings:"opsz" 32;
+  font-family:var(--font-display);
   font-size:calc(var(--by-fs)*var(--u));font-weight:var(--w-proof);letter-spacing:var(--proof-ls);
   color:rgba(255,255,255,.95);text-shadow:0 calc(1*var(--u)) calc(12*var(--u)) rgba(0,0,0,.35);
 }
