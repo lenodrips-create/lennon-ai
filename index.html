@@ -58,7 +58,15 @@ a{color:inherit;text-decoration:none}
 :focus-visible{outline:2px solid #F8B285;outline-offset:3px;border-radius:4px}
 
 .stage{position:fixed;inset:0;overflow:hidden;background:#0a0d12}
-.stage-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+.stage-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;
+  filter:saturate(1.22) contrast(1.08) brightness(1.02)}
+.stage::after{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 75% 60% at 72% 42%,rgba(255,170,110,.10),transparent 70%),
+    radial-gradient(ellipse 120% 90% at 50% 45%,transparent 55%,rgba(6,8,14,.42) 100%),
+    linear-gradient(180deg,rgba(10,13,22,.18) 0%,transparent 30%,transparent 62%,rgba(8,10,18,.38) 100%);
+}
 .frame{
   position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;
   padding:calc(var(--inset-top)*var(--vu)) calc(225*var(--u)) calc(var(--inset-bottom)*var(--vu));
@@ -122,11 +130,12 @@ a{color:inherit;text-decoration:none}
 }
 .chatting .h1{display:none}
 .chatting .log{display:flex}
-.chatting .hero{justify-content:flex-end;gap:16px}
+.chatting .hero{justify-content:flex-end;gap:18px;padding-top:calc(50vh - 40px)}
+.log>:first-child{margin-top:auto}
 .chatting .proof{display:none}
 .msg{
   max-width:85%;padding:11px 15px;border-radius:16px;white-space:pre-wrap;overflow-wrap:anywhere;
-  font-size:clamp(13.5px,calc(14.5*var(--u)),16px);line-height:1.5;letter-spacing:var(--body-ls);
+  font-size:clamp(14px,calc(15.5*var(--u)),17px);line-height:1.5;letter-spacing:var(--body-ls);
   background:rgba(41,41,43,.86);backdrop-filter:blur(20px) saturate(112%);-webkit-backdrop-filter:blur(20px) saturate(112%);
   box-shadow:inset 0 0 0 1px rgba(214,228,255,.12);
 }
@@ -134,7 +143,7 @@ a{color:inherit;text-decoration:none}
 .msg.ai{align-self:flex-start;color:#ececee}
 .msg.ai::before{
   content:"KEPLER AI";display:block;margin-bottom:4px;
-  font-size:10.5px;font-weight:600;letter-spacing:.09em;color:#F8B285;
+  font-size:11px;font-weight:600;letter-spacing:.09em;color:#F8B285;
 }
 .msg.error{color:#ffcfb4}
 
@@ -321,13 +330,6 @@ a{color:inherit;text-decoration:none}
 @keyframes e-populate{from{opacity:0;transform:translateY(calc(4*var(--u)))}}
 @keyframes e-send{from{transform:scale(.82)}}
 @media (prefers-reduced-motion:no-preference){
-  .anim .brand{animation:e-settle-down .58s var(--e-soft) .06s both}
-  .anim .mark{animation:e-mark .62s var(--e-primary) .06s both}
-  .anim .links button{animation:e-settle-down .50s var(--e-soft) both}
-  .anim .links button:nth-child(1){animation-delay:.16s}
-  .anim .links button:nth-child(2){animation-delay:.21s}
-  .anim .links button:nth-child(3){animation-delay:.26s}
-  .anim .nav .cta{animation:e-settle-down .55s var(--e-soft) .34s both}
   .anim .h1{animation:e-focus 1s var(--e-primary) .30s both;will-change:transform,opacity}
   .anim .card{animation:e-panel .9s var(--e-primary) .62s both;will-change:transform,opacity}
   .anim .ph{animation:e-populate .5s var(--e-soft) .88s both}
@@ -347,37 +349,6 @@ a{color:inherit;text-decoration:none}
     src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260826_124724_bc041163-d651-425f-aea3-2acc1efc2c96.mp4"></video>
 
   <div class="frame" id="frame">
-    <input type="checkbox" id="menu" aria-hidden="true" tabindex="-1">
-    <header class="nav">
-      <a class="brand" href="#" id="home" aria-label="Kepler AI home">
-        <svg class="mark" viewBox="0 0 34 34" aria-hidden="true">
-          <circle cx="17" cy="17" r="17" fill="#9C86CE"/>
-          <circle cx="17" cy="17" r="8.6" fill="#FFFFFF"/>
-          <circle cx="17" cy="17" r="3.7" fill="#151519"/>
-        </svg>
-        <span class="wordmark">Kepler AI</span>
-      </a>
-      <nav class="links" aria-label="Main">
-        <button type="button" data-action="chats">Chats</button>
-        <button type="button" data-action="new">New chat</button>
-        <button type="button" data-action="about">About</button>
-      </nav>
-      <button class="cta" type="button" data-action="focus"><span>Start chatting</span></button>
-      <label class="burger" for="menu" aria-label="Menu">
-        <svg width="17" height="12" viewBox="0 0 17 12" aria-hidden="true"><rect y="1" width="17" height="1.8" rx=".9" fill="#fff"/><rect y="9.2" width="17" height="1.8" rx=".9" fill="#fff"/></svg>
-      </label>
-    </header>
-    <div class="sheet">
-      <div class="sheet-inner">
-        <div class="panel">
-          <button class="link" type="button" data-action="chats">Chats</button>
-          <button class="link" type="button" data-action="new">New chat</button>
-          <button class="link" type="button" data-action="about">About</button>
-          <button class="cta" type="button" data-action="focus"><span>Start chatting</span></button>
-        </div>
-      </div>
-    </div>
-
     <main class="hero">
       <h1 class="h1">Ask anything. Kepler will answer.</h1>
       <div class="log" id="log" aria-live="polite"></div>
@@ -422,18 +393,6 @@ a{color:inherit;text-decoration:none}
   </div>
 </div>
 
-<div class="scrim" id="scrim"></div>
-<aside class="drawer" id="drawer" aria-label="Chats">
-  <div class="drawer-head">
-    <span>Chats</span>
-    <button class="drawer-close" type="button" id="close" aria-label="Close chats">
-      <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1 1l10 10M11 1 1 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-    </button>
-  </div>
-  <button class="new-chat" type="button" data-action="new">+ New chat</button>
-  <ul class="chat-list" id="chats"></ul>
-</aside>
-
 <script>
   // Entrance teardown.
   setTimeout(() => document.documentElement.classList.remove('anim'), 2600);
@@ -444,8 +403,7 @@ a{color:inherit;text-decoration:none}
   const STORE = 'kepler-chats';
 
   const $ = id => document.getElementById(id);
-  const frame = $('frame'), log = $('log'), box = $('box'), list = $('chats'), sendBtn = $('send');
-  const drawer = $('drawer'), scrim = $('scrim');
+  const frame = $('frame'), log = $('log'), box = $('box'), list = null, sendBtn = $('send');
 
   let chats = [];
   try { chats = JSON.parse(localStorage.getItem(STORE)) || []; } catch {}
@@ -464,6 +422,7 @@ a{color:inherit;text-decoration:none}
   }
 
   function renderList() {
+    if (!list) return;
     list.innerHTML = '';
     if (!chats.length) {
       const li = document.createElement('li');
@@ -478,7 +437,7 @@ a{color:inherit;text-decoration:none}
       b.type = 'button';
       b.textContent = c.title || 'New chat';
       b.setAttribute('aria-current', c === current ? 'true' : 'false');
-      b.onclick = () => { if (busy) return; current = c; render(); closeDrawer(); };
+      b.onclick = () => { if (busy) return; current = c; render(); };
       li.appendChild(b);
       list.appendChild(li);
     }
@@ -492,29 +451,6 @@ a{color:inherit;text-decoration:none}
     renderList();
   }
 
-  function openDrawer() { renderList(); drawer.classList.add('open'); scrim.classList.add('open'); $('menu').checked = false; }
-  function closeDrawer() { drawer.classList.remove('open'); scrim.classList.remove('open'); }
-  scrim.onclick = closeDrawer;
-  $('close').onclick = closeDrawer;
-
-  function newChat() { if (busy) return; current = null; render(); closeDrawer(); $('menu').checked = false; box.focus(); }
-
-  document.addEventListener('click', e => {
-    const a = e.target.closest('[data-action]');
-    if (!a) return;
-    const act = a.dataset.action;
-    if (act === 'chats') openDrawer();
-    if (act === 'new') newChat();
-    if (act === 'focus') { $('menu').checked = false; box.focus(); }
-    if (act === 'about') {
-      $('menu').checked = false;
-      if (busy) return;
-      current = null; render();
-      frame.classList.add('chatting');
-      add('ai', "Hi, I'm Kepler AI. Ask me questions, get help with writing or homework, or just chat. Your chats are saved in this browser only. Tap Chats to see them.");
-    }
-  });
-  $('home').onclick = e => { e.preventDefault(); newChat(); };
 
   document.querySelectorAll('.chip').forEach(c => c.onclick = () => {
     box.value = c.dataset.prompt;
