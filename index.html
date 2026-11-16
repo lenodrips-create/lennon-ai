@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lennon</title>
+<style>
+  /* Two colors only: black ground, white text and outlines. Chats list left, conversation right. */
+  :root { --bg: #000; --fg: #fff; --font: ui-monospace, "SF Mono", Menlo, Consolas, monospace; color-scheme: dark; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--fg); font: 15px/1.5 var(--font);
+    display: flex; box-sizing: border-box; gap: 16px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-top: max(16px, env(safe-area-inset-top, 0px));
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  }
+  aside {
+    width: 240px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px;
+    border-right: 1px solid var(--fg); padding-right: 16px; min-height: 0;
+  }
+  .brand { font-weight: 700; font-size: 18px; letter-spacing: .08em; }
+  button {
+    background: var(--bg); color: var(--fg); font: inherit; text-align: left;
+    border: 1px solid var(--fg); border-radius: 0; padding: 8px 10px; cursor: pointer;
+  }
+  button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+  #chats { list-style: none; margin: 0; padding: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+  #chats button {
+    width: 100%; border-color: transparent; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #chats button:hover { border-color: var(--fg); }
+  #chats button[aria-current="true"] { background: var(--fg); color: var(--bg); }
+  main { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
+  #log { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding-bottom: 16px; }
+  .msg { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .msg.you::before { content: "> "; }
+  .msg.ai::before { content: "LENNON"; display: block; font-weight: 700; font-size: 12px; letter-spacing: .1em; margin-bottom: 2px; }
+  .empty { opacity: .5; }
+  #box {
+    width: 100%; box-sizing: border-box; resize: none;
+    background: var(--bg); color: var(--fg); font: inherit;
+    border: 1px solid var(--fg); border-radius: 0; padding: 14px 16px; outline: none;
+  }
+  #box:focus { border-width: 2px; padding: 13px 15px; }
+  #box::placeholder { color: var(--fg); opacity: .5; }
+  @media (max-width: 640px) {
+    body { flex-direction: column; }
+    aside { width: auto; max-height: 30%; border-right: 0; border-bottom: 1px solid var(--fg); padding: 0 0 12px; }
+  }
+</style>
+</head>
+<body>
+<aside>
+  <div class="brand">LENNON</div>
+  <button id="new" type="button">+ New chat</button>
+  <ul id="chats" aria-label="Chats"></ul>
+</aside>
+<main>
+  <div id="log" aria-live="polite"></div>
+  <form id="f">
+    <textarea id="box" rows="3" placeholder="Message Lennon. Enter to send." aria-label="Message"></textarea>
+  </form>
+</main>
+
+<script>
+  // Supabase Edge Function that holds the Groq key. No key lives in this file.
+  const API_URL = 'https://zxvbimdxcrslvdpqqalf.supabase.co/functions/v1/lennon-chat';
+  const MAX_MESSAGES = 30;
+
+  const KEY = 'lennon-chats';
+  const log = document.getElementById('log');
+  const box = document.getElementById('box');
+  const list = document.getElementById('chats');
+  let chats = [];
+  try { chats = JSON.parse(localStorage.getItem(KEY)) || []; } catch {}
+  let current = chats[0] || null;
+  let busy = false;
+
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(chats)); } catch {} }
+
+  function renderList() {
+    list.innerHTML = '';
+    for (const c of chats) {
+      const li = document.createElement('li');
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = c.title || 'New chat';
+      b.setAttribute('aria-current', c === current ? 'true' : 'false');
+      b.onclick = () => { if (busy) return; current = c; renderAll(); box.focus(); };
+      li.appendChild(b);
+      list.appendChild(li);
+    }
+  }
+
+  function add(cls, text) {
+    const d = document.createElement('div');
+    d.className = 'msg ' + cls;
+    d.textContent = text;
+    log.appendChild(d);
+    log.scrollTop = log.scrollHeight;
+    return d;
+  }
+
+  function renderLog() {
+    log.innerHTML = '';
+    if (!current || !current.messages.length) { add('empty', 'Start a conversation below.'); return; }
+    for (const m of current.messages) add(m.role === 'user' ? 'you' : 'ai', m.content);
+  }
+
+  function renderAll() { renderList(); renderLog(); }
+
+  document.getElementById('new').onclick = () => {
+    if (busy) return;
+    current = null;
+    renderAll();
+    box.focus();
+  };
+
+  async function send() {
+    const text = box.value.trim();
+    if (!text || busy) return;
+    busy = true;
+    box.value = '';
+    if (!current) {
+      current = { id: Date.now(), title: text.slice(0, 40), messages: [] };
+      chats.unshift(current);
+      log.innerHTML = '';
+    }
+    current.messages.push({ role: 'user', content: text });
+    save(); renderList();
+    add('you', text);
+    const out = add('ai', '...');
+    const chat = current;
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: chat.messages.slice(-MAX_MESSAGES) }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { out.textContent = data.error || 'Something went wrong. Try again.'; return; }
+      out.textContent = data.reply;
+      chat.messages.push({ role: 'assistant', content: data.reply });
+      save();
+    } catch {
+      out.textContent = 'Could not reach Lennon. Check your connection and try again.';
+    } finally {
+      busy = false;
+      box.focus();
+    }
+  }
+
+  document.getElementById('f').addEventListener('submit', e => { e.preventDefault(); send(); });
+  box.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  });
+  renderAll();
+  box.focus();
+</script>
+</body>
+</html>
