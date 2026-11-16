@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     return json({ error: "This site is not allowed to use Lennon." }, 403, origin);
   }
 
-  const key = Deno.env.get("GROQ_API_KEY");
+  const key = Deno.env.get("lennon api");
   if (!key) return json({ error: "Lennon is not set up yet: the Groq key is missing." }, 500, origin);
 
   let messages: { role: string; content: string }[];
