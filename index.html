@@ -63,15 +63,7 @@ a{color:inherit;text-decoration:none}
 :focus-visible{outline:2px solid #F8B285;outline-offset:3px;border-radius:4px}
 
 .stage{position:fixed;inset:0;overflow:hidden;background:#0a0d12}
-.stage-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;
-  filter:saturate(1.22) contrast(1.08) brightness(1.02)}
-.stage::after{
-  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
-  background:
-    radial-gradient(ellipse 75% 60% at 72% 42%,rgba(255,170,110,.10),transparent 70%),
-    radial-gradient(ellipse 120% 90% at 50% 45%,transparent 55%,rgba(6,8,14,.42) 100%),
-    linear-gradient(180deg,rgba(10,13,22,.18) 0%,transparent 30%,transparent 62%,rgba(8,10,18,.38) 100%);
-}
+.stage-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
 .frame{
   position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;
   padding:calc(var(--inset-top)*var(--vu)) calc(225*var(--u)) calc(var(--inset-bottom)*var(--vu));
@@ -351,7 +343,7 @@ a{color:inherit;text-decoration:none}
 <body>
 <div class="stage">
   <video class="stage-video" autoplay muted loop playsinline
-    src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260826_124724_bc041163-d651-425f-aea3-2acc1efc2c96.mp4"></video>
+    preload="auto" src="background.mp4"></video>
 
   <div class="frame" id="frame">
     <main class="hero">
