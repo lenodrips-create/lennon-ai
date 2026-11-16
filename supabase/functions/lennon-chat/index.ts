@@ -1,4 +1,4 @@
-// Lennon chat: receives messages from the website, adds the Groq key, and returns the reply.
+// Kepler AI chat: receives messages from the website, adds the Groq key, and returns the reply.
 // The key is read from the GROQ_API_KEY secret, so it never reaches the browser.
 
 const ALLOWED_ORIGINS = [
@@ -16,7 +16,7 @@ const MODELS = [
 ].filter(Boolean) as string[];
 
 const SYSTEM =
-  "Your name is Lennon. You are a simple, friendly chat assistant. Reply briefly in plain text, no markdown.";
+  "Your name is Kepler AI. You are a simple, friendly chat assistant. Reply briefly in plain text, no markdown.";
 
 const MAX_MESSAGES = 30;
 const MAX_CHARS = 4000;
@@ -43,14 +43,14 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors(origin) });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405, origin);
   if (!origin || !ALLOWED_ORIGINS.includes(origin)) {
-    return json({ error: "This site is not allowed to use Lennon." }, 403, origin);
+    return json({ error: "This site is not allowed to use Kepler AI." }, 403, origin);
   }
 
   // Accept the key under any of the names it might have been saved with in Supabase.
   const key = ["GROQ_API_KEY", "lennon api", "LENNON_API", "lennon_api", "LENNON API"]
     .map((n) => Deno.env.get(n)?.trim())
     .find(Boolean);
-  if (!key) return json({ error: "Lennon is not set up yet: the Groq key is missing." }, 500, origin);
+  if (!key) return json({ error: "Kepler AI is not set up yet: the Groq key is missing." }, 500, origin);
 
   let messages: { role: string; content: string }[];
   try {
@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
     if (res.status === 401) return json({ error: "The Groq key was rejected. Check the GROQ_API_KEY secret." }, 502, origin);
     if (res.status === 429) return json({ error: "Too many messages. Wait a moment and try again." }, 429, origin);
     console.error("Groq error", res.status, text);
-    return json({ error: "Lennon had a problem. Try again." }, 502, origin);
+    return json({ error: "Kepler AI had a problem. Try again." }, 502, origin);
   }
 
   return json({ error: "No Groq model is available right now." }, 502, origin);
