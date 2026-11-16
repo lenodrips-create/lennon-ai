@@ -46,6 +46,14 @@ Deno.serve(async (req) => {
     return json({ error: "This site is not allowed to use Kepler AI." }, 403, origin);
   }
 
+  // Only signed-in Kepler AI users may chat. The site sends the user's login token.
+  const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  if (!token) return json({ error: "Sign in to chat with Kepler AI." }, 401, origin);
+  const who = await fetch(`${Deno.env.get("SUPABASE_URL")}/auth/v1/user`, {
+    headers: { apikey: Deno.env.get("SUPABASE_ANON_KEY") ?? "", Authorization: `Bearer ${token}` },
+  });
+  if (!who.ok) return json({ error: "Your sign-in expired. Sign in again to keep chatting." }, 401, origin);
+
   // Accept the key under any of the names it might have been saved with in Supabase.
   const key = ["GROQ_API_KEY", "lennon api", "LENNON_API", "lennon_api", "LENNON API"]
     .map((n) => Deno.env.get(n)?.trim())

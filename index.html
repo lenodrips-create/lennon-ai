@@ -7,7 +7,11 @@
 <meta name="description" content="Kepler AI is a simple, friendly AI you can chat with.">
 <link rel="preload" href="fonts/Fredoka.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/Ubuntu-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/iconify-icon@2.1.0/dist/iconify-icon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>document.documentElement.classList.add('anim')</script>
 <style>
 @font-face{font-family:"Fredoka";src:url("fonts/Fredoka.woff2") format("woff2");font-weight:300 700;font-stretch:75% 125%;font-display:block}
@@ -225,6 +229,72 @@ body{
 .ud-edit input:focus{border-color:#a1a1aa}
 .ud-edit button{height:34px;padding:0 12px;border-radius:8px;background:#18181b;color:#fff;font-weight:500;cursor:pointer}
 
+/* ── Login screen ── */
+body.booting .frame,body.booting .ud,body.signed-out .frame,body.signed-out .ud{visibility:hidden}
+.auth{
+  position:fixed;inset:0;z-index:50;background:#ffffff;color:#09090b;overflow-y:auto;
+  font-family:"Geist",var(--font-text);display:flex;
+  padding-left:max(0px,env(safe-area-inset-left));padding-right:max(0px,env(safe-area-inset-right));
+}
+.auth-col{flex:1;display:flex;align-items:center;justify-content:center;padding:32px;min-height:100%}
+.auth-inner{width:100%;max-width:448px;display:flex;flex-direction:column;gap:24px}
+.auth-title{font-size:36px;font-weight:600;line-height:1.25}
+.auth-title span{font-weight:300;letter-spacing:-.05em;color:#09090b}
+@media (min-width:768px){.auth-title{font-size:48px}}
+.auth-desc{color:#71717a;font-size:16px;line-height:1.5}
+.auth-form{display:flex;flex-direction:column;gap:20px}
+.auth-label{display:block;font-size:14px;font-weight:500;color:#71717a;line-height:1.43}
+.glass{
+  border-radius:16px;border:1px solid #e4e4e7;background:rgba(9,9,11,.05);
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);transition:background-color .15s,border-color .15s;
+}
+.glass:focus-within{border-color:rgba(167,139,250,.7);background:rgba(139,92,246,.1)}
+.glass input{width:100%;background:transparent;font-size:14px;padding:16px;border-radius:16px;outline:none;color:#09090b}
+.glass input::placeholder{color:#71717a}
+.pw{position:relative}
+.pw input{padding-right:48px}
+.eye{position:absolute;top:0;bottom:0;right:12px;display:flex;align-items:center;color:#71717a;cursor:pointer;transition:color .15s}
+.eye:hover{color:#09090b}
+.auth-row{display:flex;align-items:center;justify-content:space-between;font-size:14px;gap:12px}
+.keep{display:flex;align-items:center;gap:12px;cursor:pointer;color:rgba(9,9,11,.9)}
+.custom-checkbox{
+  appearance:none;-webkit-appearance:none;width:20px;height:20px;flex:none;margin:0;cursor:pointer;
+  border:2px solid #e4e4e7;border-radius:6px;background:transparent;position:relative;transition:all .2s;
+}
+.custom-checkbox:checked{background:#8b5cf6;border-color:#8b5cf6}
+.custom-checkbox:checked::after{
+  content:"";position:absolute;left:5px;top:1px;width:5px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);
+}
+.vlink{color:#a78bfa;transition:color .15s}
+.vlink:hover{text-decoration:underline}
+.auth-submit{
+  width:100%;border-radius:16px;background:#18181b;padding:16px 0;font-weight:500;color:#fafafa;cursor:pointer;
+  transition:background-color .15s;font-size:16px;
+}
+.auth-submit:hover{background:rgba(24,24,27,.9)}
+.auth-submit:disabled{opacity:.6;cursor:default}
+.auth-msg{font-size:14px;line-height:1.45;color:#dc2626;margin-top:-6px}
+.auth-msg[data-kind="info"]{color:#15803d}
+.auth-or{position:relative;display:flex;align-items:center;justify-content:center}
+.auth-or .rule{width:100%;border-top:1px solid #e4e4e7}
+.auth-or .or{position:absolute;padding:0 16px;font-size:14px;color:#71717a;background:#fff}
+.auth-oauth{
+  width:100%;display:flex;align-items:center;justify-content:center;gap:12px;font-size:16px;color:#09090b;
+  border:1px solid #e4e4e7;border-radius:16px;padding:16px 0;cursor:pointer;transition:background-color .15s;
+}
+.auth-oauth:hover{background:#f4f4f5}
+.auth-foot{text-align:center;font-size:14px;color:#71717a}
+.auth :focus-visible{outline:2px solid #a78bfa;outline-offset:2px}
+.glass input:focus-visible{outline:none}
+
+/* Entrance: fade + slide + un-blur, staggered (matches the component's animate-element) */
+@keyframes fadeSlideIn{to{opacity:1;filter:blur(0);transform:translateY(0)}}
+.auth.played .ae{opacity:0;filter:blur(1px);transform:translateY(10px);animation:fadeSlideIn .6s ease-out forwards}
+.auth.played .d1{animation-delay:.1s}.auth.played .d2{animation-delay:.2s}.auth.played .d3{animation-delay:.3s}
+.auth.played .d4{animation-delay:.4s}.auth.played .d5{animation-delay:.5s}.auth.played .d6{animation-delay:.6s}
+.auth.played .d7{animation-delay:.7s}.auth.played .d8{animation-delay:.8s}.auth.played .d9{animation-delay:.9s}
+@media (prefers-reduced-motion:reduce){.auth.played .ae{opacity:1;filter:none;transform:none;animation:none}}
+
 /* ── Footer ── */
 .proof{flex:none;display:flex;justify-content:center;padding-top:16px}
 .by{font-family:var(--font-display);font-size:14px;color:rgba(255,255,255,.95);text-shadow:0 1px 12px rgba(0,0,0,.35)}
@@ -256,7 +326,7 @@ body{
 }
 </style>
 </head>
-<body>
+<body class="booting">
 <div class="stage">
   <video class="stage-video" autoplay muted loop playsinline preload="auto" src="mountains.mp4"></video>
 
@@ -314,6 +384,52 @@ body{
   </div>
 </div>
 
+<div class="auth" id="auth" hidden>
+  <section class="auth-col">
+    <div class="auth-inner">
+      <h1 class="ae d1 auth-title"><span id="authTitle">Welcome</span></h1>
+      <p class="ae d2 auth-desc" id="authDesc">Access your account and continue your journey with us</p>
+
+      <form class="auth-form" id="authForm" novalidate>
+        <div class="ae d3" id="fEmail">
+          <label class="auth-label" for="authEmail">Email Address</label>
+          <div class="glass"><input id="authEmail" name="email" type="email" autocomplete="email" placeholder="Enter your email address"></div>
+        </div>
+
+        <div class="ae d4" id="fPass">
+          <label class="auth-label" for="authPass">Password</label>
+          <div class="glass">
+            <div class="pw">
+              <input id="authPass" name="password" type="password" autocomplete="current-password" placeholder="Enter your password">
+              <button type="button" class="eye" id="authEye" aria-label="Show password">
+                <svg id="eyeOn" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg id="eyeOff" hidden width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="m2 2 20 20"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ae d5 auth-row" id="fExtras">
+          <label class="keep"><input type="checkbox" id="authRemember" name="rememberMe" class="custom-checkbox" checked><span>Keep me signed in</span></label>
+          <a href="#" class="vlink" id="authReset">Reset password</a>
+        </div>
+
+        <button type="submit" class="ae d6 auth-submit" id="authSubmit">Sign In</button>
+        <p class="auth-msg" id="authMsg" role="alert" hidden></p>
+      </form>
+
+      <div class="ae d7 auth-or" id="authOr"><span class="rule"></span><span class="or">Or continue with</span></div>
+
+      <button type="button" class="ae d8 auth-oauth" id="authGithub">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.73.5.75 5.48.75 11.75c0 4.97 3.22 9.18 7.69 10.67.56.1.77-.24.77-.54v-1.9c-3.13.68-3.79-1.51-3.79-1.51-.51-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.69.08-.69 1.13.08 1.72 1.16 1.72 1.16 1 1.72 2.63 1.22 3.27.93.1-.73.39-1.22.71-1.5-2.5-.28-5.13-1.25-5.13-5.57 0-1.23.44-2.24 1.16-3.03-.12-.28-.5-1.43.11-2.98 0 0 .95-.3 3.1 1.16a10.8 10.8 0 0 1 5.64 0c2.15-1.46 3.1-1.16 3.1-1.16.61 1.55.23 2.7.11 2.98.72.79 1.16 1.8 1.16 3.03 0 4.33-2.64 5.28-5.15 5.56.4.35.76 1.03.76 2.08v3.09c0 .3.2.65.78.54 4.46-1.49 7.68-5.7 7.68-10.67C23.25 5.48 18.27.5 12 .5Z"/></svg>
+        Continue with GitHub
+      </button>
+
+      <p class="ae d9 auth-foot" id="authFoot"><span id="authFootText">New to our platform? </span><a href="#" class="vlink" id="authFootLink" data-to="signup">Create Account</a></p>
+    </div>
+  </section>
+</div>
+
 <div class="ud" id="ud">
   <button type="button" class="ud-trigger" id="udBtn" aria-haspopup="menu" aria-expanded="false" aria-label="Your menu">
     <span class="ud-avatar" data-initials>Y</span>
@@ -325,7 +441,7 @@ body{
           <span class="ud-avatar" data-initials>Y</span>
           <div style="min-width:0">
             <h3 id="udName">You</h3>
-            <p>Chatting with Kepler AI</p>
+            <p id="udHandle">Signed in</p>
           </div>
         </div>
         <span class="ud-badge" id="udBadge" data-s="online">online</span>
@@ -373,6 +489,9 @@ body{
       <button type="button" class="ud-item danger" data-act="clear" id="udClear">
         <span class="l"><iconify-icon class="ic" icon="solar:trash-bin-trash-bold-duotone"></iconify-icon><span>Clear all chats</span></span>
       </button>
+      <button type="button" class="ud-item" data-act="logout">
+        <span class="l"><iconify-icon class="ic" icon="solar:logout-2-bold-duotone"></iconify-icon><span>Log out</span></span>
+      </button>
     </section>
   </div>
 </div>
@@ -380,21 +499,142 @@ body{
 <script>
   setTimeout(() => document.documentElement.classList.remove('anim'), 2000);
 
-  // Supabase Edge Function that holds the Groq key. No key lives in this file.
-  const API_URL = 'https://zxvbimdxcrslvdpqqalf.supabase.co/functions/v1/lennon-chat';
+  // ── Supabase (publishable key is meant to be public; Row Level Security keeps each user's data private) ──
+  const SUPABASE_URL = 'https://zxvbimdxcrslvdpqqalf.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_KGnwpyai1gG2rHBj6XSnmA_VlK-Yc8a';
+  const API_URL = SUPABASE_URL + '/functions/v1/lennon-chat';
+  const SITE_URL = location.origin + location.pathname;
   const MAX_MESSAGES = 30;
-  const STORE = 'kepler-chats';
+
+  // "Keep me signed in": remembered sessions live in localStorage, others only until the tab closes.
+  const REMEMBER = 'kepler-remember';
+  const safe = (fn, fb) => { try { return fn(); } catch { return fb; } };
+  const remember = () => safe(() => localStorage.getItem(REMEMBER) !== '0', true);
+  const authStorage = {
+    getItem: k => safe(() => sessionStorage.getItem(k) ?? localStorage.getItem(k), null),
+    setItem: (k, v) => safe(() => {
+      if (remember()) { localStorage.setItem(k, v); sessionStorage.removeItem(k); }
+      else { sessionStorage.setItem(k, v); localStorage.removeItem(k); }
+    }),
+    removeItem: k => safe(() => { localStorage.removeItem(k); sessionStorage.removeItem(k); }),
+  };
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { storage: authStorage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+  });
 
   const $ = id => document.getElementById(id);
   const frame = $('frame'), log = $('log'), box = $('box'), sendBtn = $('send');
 
+  let user = null;
+  let profile = { name: '', status: 'online', theme: 'light' };
   let chats = [];
-  try { chats = JSON.parse(localStorage.getItem(STORE)) || []; } catch {}
   let current = null;
   let busy = false;
 
-  const save = () => { try { localStorage.setItem(STORE, JSON.stringify(chats)); } catch {} };
+  // ── Login screen ──
+  const auth = $('auth'), authForm = $('authForm'), authMsg = $('authMsg');
+  let mode = 'signin';
+  const MODES = {
+    signin:  { title: 'Welcome', desc: 'Access your account and continue your journey with us', btn: 'Sign In', pass: true, extras: true, foot: ['New to our platform?', 'Create Account', 'signup'] },
+    signup:  { title: 'Create account', desc: 'Sign up to save your chats and settings across devices', btn: 'Create Account', pass: true, extras: false, foot: ['Already have an account?', 'Sign In', 'signin'] },
+    reset:   { title: 'Reset password', desc: "Enter your email and we'll send you a link to set a new password", btn: 'Send reset link', pass: false, extras: false, foot: ['Remembered it?', 'Sign In', 'signin'] },
+    newpass: { title: 'New password', desc: 'Choose a new password for your account', btn: 'Update password', pass: true, email: false, extras: false, foot: null },
+  };
+  function setMode(m) {
+    mode = m;
+    const c = MODES[m];
+    $('authTitle').textContent = c.title;
+    $('authDesc').textContent = c.desc;
+    $('authSubmit').textContent = c.btn;
+    $('fEmail').hidden = c.email === false;
+    $('fPass').hidden = !c.pass;
+    $('fExtras').hidden = !c.extras;
+    $('authOr').hidden = $('authGithub').hidden = m === 'newpass';
+    $('authPass').autocomplete = m === 'signin' ? 'current-password' : 'new-password';
+    $('authFoot').hidden = !c.foot;
+    if (c.foot) { $('authFootText').textContent = c.foot[0] + ' '; $('authFootLink').textContent = c.foot[1]; $('authFootLink').dataset.to = c.foot[2]; }
+    say('');
+  }
+  function say(text, kind = 'error') { authMsg.textContent = text; authMsg.dataset.kind = kind; authMsg.hidden = !text; }
+  function showAuth(m = 'signin') {
+    setMode(m);
+    document.body.classList.remove('booting');
+    document.body.classList.add('signed-out');
+    auth.hidden = false;
+    auth.classList.remove('played'); void auth.offsetWidth; auth.classList.add('played');
+  }
+  function hideAuth() {
+    auth.hidden = true;
+    document.body.classList.remove('booting', 'signed-out');
+  }
 
+  $('authEye').onclick = () => {
+    const p = $('authPass'), show = p.type === 'password';
+    p.type = show ? 'text' : 'password';
+    $('eyeOn').toggleAttribute('hidden', show); $('eyeOff').toggleAttribute('hidden', !show);
+    $('authEye').setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+  };
+  $('authReset').onclick = e => { e.preventDefault(); setMode('reset'); };
+  $('authFootLink').onclick = e => { e.preventDefault(); setMode(e.currentTarget.dataset.to); };
+  $('authGithub').onclick = async () => {
+    say('');
+    const { error } = await sb.auth.signInWithOAuth({ provider: 'github', options: { redirectTo: SITE_URL } });
+    if (error) say(error.message.includes('not enabled') ? 'GitHub sign-in is not turned on yet.' : error.message);
+  };
+
+  authForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = $('authEmail').value.trim(), password = $('authPass').value;
+    const btn = $('authSubmit');
+    if (mode !== 'newpass' && !email) return say('Enter your email address.');
+    if (MODES[mode].pass && password.length < 6) return say('Use a password with at least 6 characters.');
+    btn.disabled = true; say('');
+    try {
+      if (mode === 'signin') {
+        safe(() => localStorage.setItem(REMEMBER, $('authRemember').checked ? '1' : '0'));
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) say(error.message === 'Invalid login credentials' ? 'That email and password don\'t match. Try again or reset your password.' : error.message);
+      } else if (mode === 'signup') {
+        const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: SITE_URL } });
+        if (error) say(error.message);
+        else if (!data.session) { setMode('signin'); say('Check your email for a link to confirm your account, then sign in.', 'info'); }
+      } else if (mode === 'reset') {
+        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: SITE_URL });
+        if (error) say(error.message);
+        else say('If that email has an account, a reset link is on its way.', 'info');
+      } else if (mode === 'newpass') {
+        const { error } = await sb.auth.updateUser({ password });
+        if (error) say(error.message);
+        else { hideAuth(); await loadUserData(); }
+      }
+    } catch {
+      say('Could not reach the sign-in service. Check your connection and try again.');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // ── Data (Supabase tables: profiles, chats) ──
+  async function loadUserData() {
+    const [p, c] = await Promise.all([
+      sb.from('profiles').select('name,status,theme').eq('id', user.id).maybeSingle(),
+      sb.from('chats').select('id,title,messages,updated_at').order('updated_at', { ascending: false }).limit(100),
+    ]);
+    profile = p.data || { name: user.user_metadata?.full_name || user.user_metadata?.user_name || '', status: 'online', theme: 'light' };
+    if (!p.data) sb.from('profiles').upsert({ id: user.id, ...profile });
+    chats = c.data || [];
+    current = null;
+    paintUser(); render(); sync();
+  }
+  const saveProfile = () => user && sb.from('profiles').upsert({ id: user.id, ...profile, updated_at: new Date().toISOString() }).then(() => {});
+  async function saveChat(chat) {
+    const row = { title: chat.title, messages: chat.messages, updated_at: new Date().toISOString() };
+    if (chat.id) { await sb.from('chats').update(row).eq('id', chat.id); return; }
+    const { data } = await sb.from('chats').insert(row).select('id').single();
+    if (data) chat.id = data.id;
+  }
+
+  // ── Chat ──
   function add(cls, text) {
     const d = document.createElement('div');
     d.className = 'msg ' + cls;
@@ -403,15 +643,12 @@ body{
     log.scrollTop = log.scrollHeight;
     return d;
   }
-
   function render() {
     log.innerHTML = '';
     const has = current && current.messages.length;
     frame.classList.toggle('chatting', !!has);
     if (has) for (const m of current.messages) add(m.role === 'user' ? 'user' : 'ai', m.content);
   }
-
-  // Grow the box with its text and light up the send button when there's something to send.
   function sync() {
     box.style.height = 'auto';
     box.style.height = Math.min(box.scrollHeight, 200) + 'px';
@@ -419,14 +656,14 @@ body{
   }
   box.addEventListener('input', sync);
 
-  // Menus
+  // Composer menus
   const menus = [[$('toolsBtn'), $('toolsMenu')], [$('modelBtn'), $('modelMenu')]];
   function closeMenus() { for (const [b, m] of menus) { m.hidden = true; b.setAttribute('aria-expanded', 'false'); } }
   for (const [b, m] of menus) {
     b.addEventListener('click', e => {
       e.stopPropagation();
       const open = m.hidden;
-      closeMenus(); if (typeof closeMenu === 'function') closeMenu();
+      closeMenus(); closeMenu();
       m.hidden = !open;
       b.setAttribute('aria-expanded', String(open));
     });
@@ -438,14 +675,9 @@ body{
     const item = e.target.closest('button');
     if (!item) return;
     closeMenus();
-    if (item.dataset.action === 'new') {
-      if (busy) return;
-      current = null; render();
-    } else {
-      box.value = item.dataset.prompt;
-    }
-    sync();
-    box.focus();
+    if (item.dataset.action === 'new') { if (busy) return; current = null; render(); }
+    else box.value = item.dataset.prompt;
+    sync(); box.focus();
     box.setSelectionRange(box.value.length, box.value.length);
   });
   $('modelMenu').addEventListener('click', () => closeMenus());
@@ -457,73 +689,67 @@ body{
     if (f.size > 12000) { frame.classList.add('chatting'); add('ai error', 'That file is too big. Attach a text file under 12 KB.'); return; }
     const text = await f.text();
     box.value = (box.value ? box.value + '\n\n' : '') + `Here is ${f.name}:\n${text}`;
-    sync();
-    box.focus();
+    sync(); box.focus();
   };
 
   async function send() {
     const text = box.value.trim();
-    if (!text || busy) return;
+    if (!text || busy || !user) return;
     if (text.length > 4000) { frame.classList.add('chatting'); add('ai error', 'That message is too long. Keep it under 4,000 characters.'); return; }
     busy = true; sendBtn.disabled = true;
     box.value = ''; sync();
     if (!current) {
-      current = { id: Date.now(), title: text.slice(0, 40), messages: [] };
+      current = { id: null, title: text.slice(0, 40), messages: [] };
       chats.unshift(current);
       log.innerHTML = '';
     }
     current.messages.push({ role: 'user', content: text });
-    save();
     frame.classList.add('chatting');
     add('user', text);
     const out = add('ai', '...');
     const chat = current;
     try {
+      const { data: s } = await sb.auth.getSession();
+      if (!s.session) { out.classList.add('error'); out.textContent = 'You were signed out. Sign in again to keep chatting.'; return; }
       const res = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + s.session.access_token },
         body: JSON.stringify({ messages: chat.messages.slice(-MAX_MESSAGES) }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { out.classList.add('error'); out.textContent = data.error || 'Something went wrong. Try again.'; return; }
       out.textContent = data.reply;
       chat.messages.push({ role: 'assistant', content: data.reply });
-      save();
     } catch {
       out.classList.add('error');
       out.textContent = 'Could not reach Kepler AI. Check your connection and try again.';
     } finally {
+      saveChat(chat).catch(() => {});
       busy = false; sendBtn.disabled = false; sync();
       log.scrollTop = log.scrollHeight;
       box.focus();
     }
   }
-
   $('form').addEventListener('submit', e => { e.preventDefault(); send(); });
-  box.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
-  });
+  box.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
 
   // ── User menu (top-left) ──
-  const ud = $('ud'), udBtn = $('udBtn'), udMenu = $('udMenu');
-  const prefs = (() => { try { return JSON.parse(localStorage.getItem('kepler-prefs')) || {}; } catch { return {}; } })();
-  const savePrefs = () => { try { localStorage.setItem('kepler-prefs', JSON.stringify(prefs)); } catch {} };
+  const udBtn = $('udBtn'), udMenu = $('udMenu');
   let sub = null, clearArmed = false;
 
   function paintUser() {
-    const name = (prefs.name || '').trim();
-    $('udName').textContent = name || 'You';
-    const initials = name ? name.split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase() : 'Y';
+    const email = user?.email || '';
+    const name = (profile.name || '').trim() || email.split('@')[0] || 'You';
+    $('udName').textContent = name;
+    $('udHandle').textContent = email || 'Signed in';
+    const initials = name.split(/[\s._-]+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'Y';
     document.querySelectorAll('[data-initials]').forEach(el => el.textContent = initials);
-    const st = prefs.status || 'online';
-    $('udBadge').dataset.s = st;
-    $('udBadge').textContent = st === 'focus' ? 'focus' : st;
-    const dark = prefs.theme === 'dark';
-    document.documentElement.toggleAttribute('data-box', dark);
-    if (dark) document.documentElement.dataset.box = 'dark';
+    const st = profile.status || 'online';
+    $('udBadge').dataset.s = st; $('udBadge').textContent = st;
+    const dark = profile.theme === 'dark';
+    if (dark) document.documentElement.dataset.box = 'dark'; else delete document.documentElement.dataset.box;
     $('udTheme').textContent = dark ? 'Dark' : 'Light';
   }
-
   function closeSub() {
     if (sub) { sub.remove(); sub = null; }
     udMenu.querySelectorAll('[data-sub]').forEach(b => b.setAttribute('aria-expanded', 'false'));
@@ -556,7 +782,6 @@ body{
     b.onclick = e => { e.stopPropagation(); onPick(); };
     return b;
   }
-
   function openSub(trigger) {
     const kind = trigger.dataset.sub;
     const wasOpen = trigger.getAttribute('aria-expanded') === 'true';
@@ -565,26 +790,23 @@ body{
     sub = document.createElement('div');
     sub.className = 'ud-sub'; sub.setAttribute('role', 'menu');
     if (kind === 'status') {
-      const cur = prefs.status || 'online';
+      const cur = profile.status || 'online';
       [['online', 'solar:check-circle-line-duotone', 'Online'],
        ['focus', 'solar:emoji-funny-circle-line-duotone', 'Focus'],
        ['offline', 'solar:moon-sleep-line-duotone', 'Appear Offline']].forEach(([v, ic, label]) =>
-        sub.appendChild(radio(label, ic, cur === v, () => { prefs.status = v; savePrefs(); paintUser(); closeSub(); })));
+        sub.appendChild(radio(label, ic, cur === v, () => { profile.status = v; saveProfile(); paintUser(); closeSub(); })));
+    } else if (!chats.length) {
+      const p = document.createElement('p'); p.className = 'ud-empty'; p.textContent = 'No chats yet. Send a message to start one.';
+      sub.appendChild(p);
     } else {
-      if (!chats.length) {
-        const p = document.createElement('p'); p.className = 'ud-empty'; p.textContent = 'No chats yet. Send a message to start one.';
-        sub.appendChild(p);
-      } else {
-        for (const c of chats) {
-          const b = document.createElement('button');
-          b.type = 'button'; b.className = 'ud-radio'; b.style.paddingLeft = '8px';
-          b.setAttribute('aria-checked', String(c === current));
-          const t = document.createElement('span'); t.className = 'ud-chat'; t.style.paddingLeft = '0';
-          t.textContent = (c === current ? '• ' : '') + (c.title || 'New chat');
-          b.appendChild(t);
-          b.onclick = e => { e.stopPropagation(); if (busy) return; current = c; render(); closeMenu(); };
-          sub.appendChild(b);
-        }
+      for (const c of chats) {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'ud-radio'; b.style.paddingLeft = '8px';
+        const t = document.createElement('span'); t.className = 'ud-chat'; t.style.paddingLeft = '0';
+        t.textContent = (c === current ? '• ' : '') + (c.title || 'New chat');
+        b.appendChild(t);
+        b.onclick = e => { e.stopPropagation(); if (busy) return; current = c; render(); closeMenu(); };
+        sub.appendChild(b);
       }
     }
     document.body.appendChild(sub);
@@ -595,12 +817,9 @@ body{
     top = Math.min(top, innerHeight - h - 8);
     sub.style.left = left + 'px'; sub.style.top = Math.max(8, top) + 'px';
   }
+  function resetClear() { $('udClear').querySelector('.l span').textContent = 'Clear all chats'; }
 
-  function resetClear() {
-    $('udClear').querySelector('.l span').textContent = 'Clear all chats';
-  }
-
-  udMenu.addEventListener('click', e => {
+  udMenu.addEventListener('click', async e => {
     const t = e.target.closest('[data-sub],[data-act]');
     if (!t) return;
     e.stopPropagation();
@@ -609,31 +828,50 @@ body{
     const act = t.dataset.act;
     if (act === 'profile') {
       const f = $('udEdit'); f.hidden = !f.hidden;
-      if (!f.hidden) { $('udNameInput').value = prefs.name || ''; $('udNameInput').focus(); }
+      if (!f.hidden) { $('udNameInput').value = profile.name || ''; $('udNameInput').focus(); }
     } else if (act === 'appearance') {
-      prefs.theme = prefs.theme === 'dark' ? 'light' : 'dark'; savePrefs(); paintUser();
+      profile.theme = profile.theme === 'dark' ? 'light' : 'dark'; saveProfile(); paintUser();
     } else if (act === 'new') {
       if (busy) return; current = null; render(); closeMenu(); box.focus();
     } else if (act === 'about' || act === 'help') {
       if (busy) return;
       current = null; render(); frame.classList.add('chatting');
       add('ai', act === 'about'
-        ? "I'm Kepler AI, a friendly assistant. Ask me questions, get help with writing or homework, or just chat. Your chats are saved in this browser only."
+        ? "I'm Kepler AI, a friendly assistant. Ask me questions, get help with writing or homework, or just chat. Your chats are saved to your account."
         : "Type a message in the box and press Enter to send it. Use Tools for quick starters, the paperclip to add a text file, and Chat history in this menu to go back to an old chat.");
       closeMenu();
     } else if (act === 'clear') {
       if (!clearArmed) { clearArmed = true; t.querySelector('.l span').textContent = 'Click again to clear'; return; }
-      chats = []; current = null; save(); render(); clearArmed = false; resetClear(); closeMenu();
+      await sb.from('chats').delete().eq('user_id', user.id);
+      chats = []; current = null; render(); clearArmed = false; resetClear(); closeMenu();
+    } else if (act === 'logout') {
+      closeMenu();
+      await sb.auth.signOut();
     }
   });
   $('udEdit').addEventListener('submit', e => {
     e.preventDefault();
-    prefs.name = $('udNameInput').value.trim().slice(0, 40); savePrefs(); paintUser();
+    profile.name = $('udNameInput').value.trim().slice(0, 40); saveProfile(); paintUser();
     $('udEdit').hidden = true;
   });
 
-  paintUser();
-  render(); sync();
+  // ── Session ──
+  let lastUserId = null;
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY') { user = session?.user || null; showAuth('newpass'); return; }
+    if (mode === 'newpass' && !auth.hidden && session) return;
+    user = session?.user || null;
+    if (!user) {
+      lastUserId = null; chats = []; current = null; render();
+      showAuth('signin');
+      return;
+    }
+    hideAuth();
+    if (user.id !== lastUserId) {
+      lastUserId = user.id;
+      setTimeout(() => loadUserData().catch(() => {}), 0);
+    }
+  });
 </script>
 </body>
 </html>
