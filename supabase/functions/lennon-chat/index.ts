@@ -46,7 +46,10 @@ Deno.serve(async (req) => {
     return json({ error: "This site is not allowed to use Lennon." }, 403, origin);
   }
 
-  const key = Deno.env.get("lennon api");
+  // Accept the key under any of the names it might have been saved with in Supabase.
+  const key = ["GROQ_API_KEY", "lennon api", "LENNON_API", "lennon_api", "LENNON API"]
+    .map((n) => Deno.env.get(n)?.trim())
+    .find(Boolean);
   if (!key) return json({ error: "Lennon is not set up yet: the Groq key is missing." }, 500, origin);
 
   let messages: { role: string; content: string }[];
