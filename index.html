@@ -154,7 +154,9 @@ body{
 }
 .menu button:hover{background:var(--hover)}
 .menu .sub{display:block;font-size:13px;color:#6b7280;margin-top:1px}
-.menu .check{margin-left:auto;color:var(--ink)}
+.menu .check{margin-left:auto;color:var(--ink);visibility:hidden}
+.menu [aria-checked="true"] .check{visibility:visible}
+.menu .mname{font-weight:500}
 
 /* ── User menu (top-left) ── */
 .ud{position:fixed;z-index:30;top:max(18px,env(safe-area-inset-top));left:max(18px,env(safe-area-inset-left));font-size:14px;color:#18181b}
@@ -353,7 +355,7 @@ body.booting .frame,body.booting .ud,body.signed-out .frame,body.signed-out .ud{
 
           <button type="button" class="ibtn model" id="modelBtn" aria-haspopup="menu" aria-expanded="false">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="#E88654" aria-hidden="true"><path d="M12 2c.6 4.6 2.9 7.4 8 8.2v1.6c-5.1.8-7.4 3.6-8 8.2h-1.6c-.6-4.6-2.9-7.4-8-8.2v-1.6c5.1-.8 7.4-3.6 8-8.2H12Z" transform="translate(.8 1)"/></svg>
-            <span class="label">Kepler-1</span>
+            <span class="label" id="modelLabel">Titan 5.5</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
           </button>
 
@@ -370,8 +372,16 @@ body.booting .frame,body.booting .ud,body.signed-out .frame,body.signed-out .ud{
         </div>
 
         <div class="menu menu-model" id="modelMenu" role="menu" hidden>
-          <button type="button" role="menuitem" data-close>
-            <span><span>Kepler-1</span><span class="sub">Fast, friendly answers</span></span>
+          <button type="button" role="menuitemradio" data-model="titan" aria-checked="false">
+            <span><span class="mname">Titan 5.5</span><span class="sub">Our smartest model for hard questions</span></span>
+            <svg class="check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
+          </button>
+          <button type="button" role="menuitemradio" data-model="pan" aria-checked="false">
+            <span><span class="mname">Pan 5</span><span class="sub">Balanced speed and smarts</span></span>
+            <svg class="check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
+          </button>
+          <button type="button" role="menuitemradio" data-model="janus" aria-checked="false">
+            <span><span class="mname">Janus 4.5</span><span class="sub">Fastest, for quick questions</span></span>
             <svg class="check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
           </button>
         </div>
@@ -680,7 +690,20 @@ body.booting .frame,body.booting .ud,body.signed-out .frame,body.signed-out .ud{
     sync(); box.focus();
     box.setSelectionRange(box.value.length, box.value.length);
   });
-  $('modelMenu').addEventListener('click', () => closeMenus());
+  // Models: Titan (best), Pan (middle), Janus (fastest). Choice is remembered in this browser.
+  const MODEL_NAMES = { titan: 'Titan 5.5', pan: 'Pan 5', janus: 'Janus 4.5' };
+  let model = safe(() => localStorage.getItem('kepler-model'), null);
+  if (!MODEL_NAMES[model]) model = 'titan';
+  function paintModel() {
+    $('modelLabel').textContent = MODEL_NAMES[model];
+    $('modelMenu').querySelectorAll('[data-model]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.model === model)));
+  }
+  $('modelMenu').addEventListener('click', e => {
+    const b = e.target.closest('[data-model]');
+    if (b) { model = b.dataset.model; safe(() => localStorage.setItem('kepler-model', model)); paintModel(); }
+    closeMenus(); box.focus();
+  });
+  paintModel();
 
   $('file').onchange = async e => {
     const f = e.target.files[0];
@@ -714,7 +737,7 @@ body.booting .frame,body.booting .ud,body.signed-out .frame,body.signed-out .ud{
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + s.session.access_token },
-        body: JSON.stringify({ messages: chat.messages.slice(-MAX_MESSAGES) }),
+        body: JSON.stringify({ model, messages: chat.messages.slice(-MAX_MESSAGES) }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { out.classList.add('error'); out.textContent = data.error || 'Something went wrong. Try again.'; return; }

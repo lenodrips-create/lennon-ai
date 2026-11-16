@@ -7,16 +7,16 @@ const ALLOWED_ORIGINS = [
   "http://127.0.0.1:8000",
 ];
 
-// Tried in order; the first one Groq accepts is used. Set GROQ_MODEL to override.
-const MODELS = [
-  Deno.env.get("GROQ_MODEL"),
-  "openai/gpt-oss-120b",
-  "llama-3.3-70b-versatile",
-  "llama-3.1-8b-instant",
-].filter(Boolean) as string[];
+// Kepler AI models, best to fastest. Each maps to Groq models, tried in order;
+// if a Groq model is retired, the next one is used.
+const TIERS: Record<string, { name: string; groq: string[] }> = {
+  titan: { name: "Titan 5.5", groq: ["openai/gpt-oss-120b", "llama-3.3-70b-versatile"] },
+  pan:   { name: "Pan 5",     groq: ["llama-3.3-70b-versatile", "openai/gpt-oss-20b", "openai/gpt-oss-120b"] },
+  janus: { name: "Janus 4.5", groq: ["llama-3.1-8b-instant", "openai/gpt-oss-20b", "llama-3.3-70b-versatile"] },
+};
 
-const SYSTEM =
-  "Your name is Kepler AI. You are a simple, friendly chat assistant. Reply briefly in plain text, no markdown.";
+const system = (model: string) =>
+  `Your name is Kepler AI and you are running the ${model} model. You are a simple, friendly chat assistant. Reply briefly in plain text, no markdown.`;
 
 const MAX_MESSAGES = 30;
 const MAX_CHARS = 4000;
@@ -64,9 +64,11 @@ Deno.serve(async (req) => {
   if (!key) return json({ error: "Kepler AI is not set up yet: the Groq key is missing." }, 500, origin);
 
   let messages: { role: string; content: string }[];
+  let tier = TIERS.titan;
   try {
     const body = await req.json();
     messages = body.messages;
+    if (typeof body.model === "string" && TIERS[body.model]) tier = TIERS[body.model];
   } catch {
     return json({ error: "Bad request." }, 400, origin);
   }
@@ -81,14 +83,14 @@ Deno.serve(async (req) => {
     return json({ error: "That chat is too long. Start a new chat." }, 400, origin);
   }
 
-  for (const model of MODELS) {
+  for (const model of tier.groq) {
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model,
         max_tokens: 1024,
-        messages: [{ role: "system", content: SYSTEM }, ...messages],
+        messages: [{ role: "system", content: system(tier.name) }, ...messages],
       }),
     });
 
