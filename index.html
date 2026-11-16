@@ -7,6 +7,7 @@
 <meta name="description" content="Kepler AI is a simple, friendly AI you can chat with.">
 <link rel="preload" href="fonts/Fredoka.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/Ubuntu-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<script src="https://cdn.jsdelivr.net/npm/iconify-icon@2.1.0/dist/iconify-icon.min.js"></script>
 <script>document.documentElement.classList.add('anim')</script>
 <style>
 @font-face{font-family:"Fredoka";src:url("fonts/Fredoka.woff2") format("woff2");font-weight:300 700;font-stretch:75% 125%;font-display:block}
@@ -18,6 +19,8 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 button,input,textarea{font:inherit;color:inherit;background:none;border:0}
 img,svg{display:block}
+[hidden]{display:none!important}
+a{color:inherit;text-decoration:none}
 
 :root{
   /* Layout: full-screen video, headline + white composer centered; chat stacks just above the composer. */
@@ -32,11 +35,17 @@ img,svg{display:block}
   --muted:#9ca3af;
   --idle:#e5e7eb;
   --accent:#E88654;
+  --hover:#f3f4f6;
+  --on-ink:#ffffff;
 
   --w:767px;
   --e-primary:cubic-bezier(.16,1,.3,1);
   --e-soft:cubic-bezier(.22,1,.36,1);
   color-scheme:light;
+}
+:root[data-box="dark"]{
+  --card:#1c1c1f;--line:#2e2e33;--ink:#f3f4f6;--ink-soft:#d1d5db;--muted:#8b8d93;--idle:#3a3a40;
+  --hover:#2a2a2f;--on-ink:#111114;
 }
 
 html,body{height:100%}
@@ -77,7 +86,7 @@ body{
   max-width:85%;padding:12px 18px;border-radius:22px;white-space:pre-wrap;overflow-wrap:anywhere;
   font-size:16px;line-height:1.55;
 }
-.msg.user{align-self:flex-end;background:var(--ink);color:#fff;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+.msg.user{align-self:flex-end;background:var(--ink);color:var(--on-ink);box-shadow:0 6px 24px rgba(0,0,0,.18)}
 .msg.ai{
   align-self:flex-start;background:var(--card);color:var(--ink);border:1px solid var(--line);
   font-family:var(--font-reply);line-height:1.6;box-shadow:0 6px 24px rgba(0,0,0,.12);
@@ -110,7 +119,7 @@ body{
   color:var(--ink);font-size:16px;font-weight:500;cursor:pointer;white-space:nowrap;
   transition:background .15s ease;
 }
-.ibtn:hover{background:#f3f4f6}
+.ibtn:hover{background:var(--hover)}
 .ibtn svg{flex:none}
 .attach{padding:0 6px;margin-left:-6px}
 .spacer{flex:1}
@@ -120,8 +129,8 @@ body{
   display:flex;align-items:center;justify-content:center;cursor:pointer;
   background:var(--idle);color:#fff;transition:background .18s ease,transform .12s ease;
 }
-.send.ready{background:var(--ink)}
-.send.ready:hover{background:#000}
+.send.ready{background:var(--ink);color:var(--on-ink)}
+.send.ready:hover{filter:brightness(1.15)}
 .send:active{transform:scale(.94)}
 .send:disabled{cursor:default}
 #file{display:none}
@@ -139,9 +148,82 @@ body{
   width:100%;display:flex;align-items:center;gap:10px;text-align:left;
   padding:10px 12px;border-radius:12px;font-size:15px;cursor:pointer;
 }
-.menu button:hover{background:#f3f4f6}
+.menu button:hover{background:var(--hover)}
 .menu .sub{display:block;font-size:13px;color:#6b7280;margin-top:1px}
 .menu .check{margin-left:auto;color:var(--ink)}
+
+/* ── User menu (top-left) ── */
+.ud{position:fixed;z-index:30;top:max(18px,env(safe-area-inset-top));left:max(18px,env(safe-area-inset-left));font-size:14px;color:#18181b}
+.ud iconify-icon{display:inline-flex;flex:none}
+.ud-trigger{display:block;border-radius:50%;cursor:pointer}
+.ud-avatar{
+  width:40px;height:40px;border-radius:50%;border:1px solid #fff;flex:none;
+  display:flex;align-items:center;justify-content:center;
+  background:#f4f4f5;color:#18181b;font-weight:500;font-size:15px;letter-spacing:.01em;
+  box-shadow:0 2px 10px rgba(0,0,0,.18);user-select:none;
+}
+.ud-content{
+  position:absolute;top:calc(100% + 4px);left:0;width:310px;max-width:calc(100vw - 36px);
+  max-height:calc(100dvh - 90px);overflow-y:auto;scrollbar-width:none;
+  border-radius:16px;background:#f9fafb;border:1px solid #e4e4e7;box-shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);
+  transform-origin:top left;
+}
+.ud-content::-webkit-scrollbar{display:none}
+.ud-content.in{animation:ud-in .15s ease-out}
+.ud-content.out{animation:ud-out .12s ease-in forwards}
+@keyframes ud-in{from{opacity:0;transform:scale(.95) translateY(-8px)}}
+@keyframes ud-out{to{opacity:0;transform:scale(.95)}}
+.ud-card{background:#fff;border-radius:16px;padding:4px;border:1px solid #e5e7eb;box-shadow:0 1px 3px rgba(0,0,0,.1),0 1px 2px -1px rgba(0,0,0,.1)}
+.ud-foot{margin-top:4px;padding:4px;border-radius:16px}
+.ud-head{display:flex;align-items:center;padding:8px}
+.ud-who{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+.ud-who h3{font-weight:600;font-size:14px;color:#111827;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ud-who p{font-size:12px;color:#71717a}
+.ud-badge{
+  display:inline-flex;align-items:center;border-radius:2px;border:.5px solid;padding:2px 8px;
+  font-size:11px;font-weight:600;text-transform:capitalize;flex:none;
+}
+.ud-badge[data-s="online"]{color:#16a34a;background:#dcfce7;border-color:#86efac}
+.ud-badge[data-s="focus"]{color:#d97706;background:#fef3c7;border-color:#fcd34d}
+.ud-badge[data-s="offline"]{color:#4b5563;background:#f3f4f6;border-color:#d1d5db}
+.ud-item{
+  position:relative;width:100%;display:flex;align-items:center;justify-content:space-between;gap:6px;
+  padding:8px;border-radius:8px;cursor:pointer;text-align:left;font-size:14px;color:#18181b;outline:none;
+  transition:background-color .15s ease;
+}
+.ud-item:hover,.ud-item:focus-visible,.ud-item[aria-expanded="true"]{background:#f4f4f5}
+.ud-item .l{display:flex;align-items:center;gap:6px;font-weight:500;min-width:0}
+.ud-item .l span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ud-item .ic{color:#6b7280;font-size:20px}
+.ud-item .ri{color:#6b7280;font-size:16px}
+.ud-item .hint{font-size:12px;color:#71717a;font-weight:500}
+.ud-item.muted .l{color:#6b7280}
+.ud-item.danger .ic{color:#dc2626}
+.ud-sep{height:1px;background:#f4f4f5;margin:4px -4px}
+.ud-sub{
+  position:fixed;z-index:31;min-width:200px;max-width:260px;max-height:320px;overflow-y:auto;
+  background:#fff;border:1px solid #e4e4e7;border-radius:6px;padding:4px;
+  box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);
+  animation:ud-sub-in .15s ease-out;
+}
+@keyframes ud-sub-in{from{opacity:0;transform:scale(.95) translateX(-8px)}}
+.ud-radio{
+  position:relative;width:100%;display:flex;align-items:center;gap:8px;padding:6px 8px 6px 32px;
+  border-radius:4px;font-size:14px;cursor:pointer;text-align:left;outline:none;color:#18181b;
+}
+.ud-radio:hover,.ud-radio:focus-visible{background:#f4f4f5}
+.ud-radio .ic{color:#6b7280;font-size:20px}
+.ud-radio .dot{position:absolute;left:12px;width:8px;height:8px;border-radius:50%;background:currentColor;opacity:0}
+.ud-radio[aria-checked="true"] .dot{opacity:1}
+.ud-chat{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;padding-left:8px}
+.ud-empty{padding:8px;font-size:13px;color:#71717a}
+.ud-edit{display:flex;gap:6px;padding:4px 8px 8px}
+.ud-edit input{
+  flex:1;min-width:0;height:34px;padding:0 10px;border-radius:8px;border:1px solid #e4e4e7;background:#fff;
+  font-size:14px;color:#18181b;outline:none;
+}
+.ud-edit input:focus{border-color:#a1a1aa}
+.ud-edit button{height:34px;padding:0 12px;border-radius:8px;background:#18181b;color:#fff;font-weight:500;cursor:pointer}
 
 /* ── Footer ── */
 .proof{flex:none;display:flex;justify-content:center;padding-top:16px}
@@ -166,6 +248,7 @@ body{
 @media (prefers-reduced-motion:no-preference){
   .anim .h1{animation:e-focus 1s var(--e-primary) .2s both}
   .anim .card{animation:e-panel .9s var(--e-primary) .45s both}
+  .anim .ud{animation:e-panel .9s var(--e-primary) .45s both}
   .anim .by{animation:e-up .55s var(--e-soft) .9s both}
 }
 @media (prefers-reduced-motion:reduce){
@@ -231,6 +314,69 @@ body{
   </div>
 </div>
 
+<div class="ud" id="ud">
+  <button type="button" class="ud-trigger" id="udBtn" aria-haspopup="menu" aria-expanded="false" aria-label="Your menu">
+    <span class="ud-avatar" data-initials>Y</span>
+  </button>
+  <div class="ud-content" id="udMenu" role="menu" hidden>
+    <section class="ud-card">
+      <div class="ud-head">
+        <div class="ud-who">
+          <span class="ud-avatar" data-initials>Y</span>
+          <div style="min-width:0">
+            <h3 id="udName">You</h3>
+            <p>Chatting with Kepler AI</p>
+          </div>
+        </div>
+        <span class="ud-badge" id="udBadge" data-s="online">online</span>
+      </div>
+      <form class="ud-edit" id="udEdit" hidden>
+        <input id="udNameInput" maxlength="40" placeholder="Your name" aria-label="Your name" autocomplete="off">
+        <button type="submit">Save</button>
+      </form>
+
+      <button type="button" class="ud-item muted" data-sub="status" aria-haspopup="menu" aria-expanded="false">
+        <span class="l"><iconify-icon class="ic" icon="solar:smile-circle-line-duotone"></iconify-icon><span>Update status</span></span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+
+      <div class="ud-sep"></div>
+      <button type="button" class="ud-item" data-act="profile">
+        <span class="l"><iconify-icon class="ic" icon="solar:user-circle-line-duotone"></iconify-icon><span>Your profile</span></span>
+      </button>
+      <button type="button" class="ud-item" data-act="appearance">
+        <span class="l"><iconify-icon class="ic" icon="solar:sun-line-duotone"></iconify-icon><span>Appearance</span></span>
+        <span class="hint" id="udTheme">Light</span>
+      </button>
+      <button type="button" class="ud-item" data-sub="history" aria-haspopup="menu" aria-expanded="false">
+        <span class="l"><iconify-icon class="ic" icon="solar:history-line-duotone"></iconify-icon><span>Chat history</span></span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+      <button type="button" class="ud-item" data-act="new">
+        <span class="l"><iconify-icon class="ic" icon="solar:pen-new-square-line-duotone"></iconify-icon><span>New chat</span></span>
+      </button>
+
+      <div class="ud-sep"></div>
+      <button type="button" class="ud-item" data-act="about">
+        <span class="l"><iconify-icon class="ic" icon="solar:star-bold" style="color:#d97706"></iconify-icon><span>About Kepler AI</span></span>
+      </button>
+      <a class="ud-item" href="https://github.com/lenodrips-create/lennon-ai/commits/main" target="_blank" rel="noopener">
+        <span class="l"><iconify-icon class="ic" icon="solar:letter-unread-line-duotone"></iconify-icon><span>What's new?</span></span>
+        <iconify-icon class="ri" icon="solar:square-top-down-line-duotone"></iconify-icon>
+      </a>
+      <button type="button" class="ud-item" data-act="help">
+        <span class="l"><iconify-icon class="ic" icon="solar:question-circle-line-duotone"></iconify-icon><span>Get help?</span></span>
+      </button>
+    </section>
+
+    <section class="ud-foot">
+      <button type="button" class="ud-item danger" data-act="clear" id="udClear">
+        <span class="l"><iconify-icon class="ic" icon="solar:trash-bin-trash-bold-duotone"></iconify-icon><span>Clear all chats</span></span>
+      </button>
+    </section>
+  </div>
+</div>
+
 <script>
   setTimeout(() => document.documentElement.classList.remove('anim'), 2000);
 
@@ -280,7 +426,7 @@ body{
     b.addEventListener('click', e => {
       e.stopPropagation();
       const open = m.hidden;
-      closeMenus();
+      closeMenus(); if (typeof closeMenu === 'function') closeMenu();
       m.hidden = !open;
       b.setAttribute('aria-expanded', String(open));
     });
@@ -358,6 +504,135 @@ body{
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
   });
 
+  // ── User menu (top-left) ──
+  const ud = $('ud'), udBtn = $('udBtn'), udMenu = $('udMenu');
+  const prefs = (() => { try { return JSON.parse(localStorage.getItem('kepler-prefs')) || {}; } catch { return {}; } })();
+  const savePrefs = () => { try { localStorage.setItem('kepler-prefs', JSON.stringify(prefs)); } catch {} };
+  let sub = null, clearArmed = false;
+
+  function paintUser() {
+    const name = (prefs.name || '').trim();
+    $('udName').textContent = name || 'You';
+    const initials = name ? name.split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase() : 'Y';
+    document.querySelectorAll('[data-initials]').forEach(el => el.textContent = initials);
+    const st = prefs.status || 'online';
+    $('udBadge').dataset.s = st;
+    $('udBadge').textContent = st === 'focus' ? 'focus' : st;
+    const dark = prefs.theme === 'dark';
+    document.documentElement.toggleAttribute('data-box', dark);
+    if (dark) document.documentElement.dataset.box = 'dark';
+    $('udTheme').textContent = dark ? 'Dark' : 'Light';
+  }
+
+  function closeSub() {
+    if (sub) { sub.remove(); sub = null; }
+    udMenu.querySelectorAll('[data-sub]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+  }
+  function openMenu() {
+    closeMenus();
+    udMenu.hidden = false;
+    udMenu.classList.remove('out'); udMenu.classList.add('in');
+    udBtn.setAttribute('aria-expanded', 'true');
+    clearArmed = false; resetClear();
+  }
+  function closeMenu() {
+    if (udMenu.hidden) return;
+    closeSub();
+    $('udEdit').hidden = true;
+    udBtn.setAttribute('aria-expanded', 'false');
+    udMenu.classList.remove('in'); udMenu.classList.add('out');
+    setTimeout(() => { if (udMenu.classList.contains('out')) { udMenu.hidden = true; udMenu.classList.remove('out'); } }, 120);
+  }
+  udBtn.addEventListener('click', e => { e.stopPropagation(); udMenu.hidden ? openMenu() : closeMenu(); });
+  document.addEventListener('click', e => { if (!e.target.closest('.ud') && !e.target.closest('.ud-sub')) closeMenu(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+
+  function radio(label, icon, checked, onPick) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'ud-radio'; b.setAttribute('role', 'menuitemradio');
+    b.setAttribute('aria-checked', String(checked));
+    b.innerHTML = '<span class="dot"></span>' + (icon ? `<iconify-icon class="ic" icon="${icon}"></iconify-icon>` : '');
+    const t = document.createElement('span'); t.textContent = label; b.appendChild(t);
+    b.onclick = e => { e.stopPropagation(); onPick(); };
+    return b;
+  }
+
+  function openSub(trigger) {
+    const kind = trigger.dataset.sub;
+    const wasOpen = trigger.getAttribute('aria-expanded') === 'true';
+    closeSub();
+    if (wasOpen) return;
+    sub = document.createElement('div');
+    sub.className = 'ud-sub'; sub.setAttribute('role', 'menu');
+    if (kind === 'status') {
+      const cur = prefs.status || 'online';
+      [['online', 'solar:check-circle-line-duotone', 'Online'],
+       ['focus', 'solar:emoji-funny-circle-line-duotone', 'Focus'],
+       ['offline', 'solar:moon-sleep-line-duotone', 'Appear Offline']].forEach(([v, ic, label]) =>
+        sub.appendChild(radio(label, ic, cur === v, () => { prefs.status = v; savePrefs(); paintUser(); closeSub(); })));
+    } else {
+      if (!chats.length) {
+        const p = document.createElement('p'); p.className = 'ud-empty'; p.textContent = 'No chats yet. Send a message to start one.';
+        sub.appendChild(p);
+      } else {
+        for (const c of chats) {
+          const b = document.createElement('button');
+          b.type = 'button'; b.className = 'ud-radio'; b.style.paddingLeft = '8px';
+          b.setAttribute('aria-checked', String(c === current));
+          const t = document.createElement('span'); t.className = 'ud-chat'; t.style.paddingLeft = '0';
+          t.textContent = (c === current ? '• ' : '') + (c.title || 'New chat');
+          b.appendChild(t);
+          b.onclick = e => { e.stopPropagation(); if (busy) return; current = c; render(); closeMenu(); };
+          sub.appendChild(b);
+        }
+      }
+    }
+    document.body.appendChild(sub);
+    trigger.setAttribute('aria-expanded', 'true');
+    const r = trigger.getBoundingClientRect(), w = sub.offsetWidth, h = sub.offsetHeight;
+    let left = r.right + 6, top = r.top - 4;
+    if (left + w > innerWidth - 8) { left = Math.max(8, r.left + 12); top = r.bottom + 4; }
+    top = Math.min(top, innerHeight - h - 8);
+    sub.style.left = left + 'px'; sub.style.top = Math.max(8, top) + 'px';
+  }
+
+  function resetClear() {
+    $('udClear').querySelector('.l span').textContent = 'Clear all chats';
+  }
+
+  udMenu.addEventListener('click', e => {
+    const t = e.target.closest('[data-sub],[data-act]');
+    if (!t) return;
+    e.stopPropagation();
+    if (t.dataset.sub) { openSub(t); return; }
+    closeSub();
+    const act = t.dataset.act;
+    if (act === 'profile') {
+      const f = $('udEdit'); f.hidden = !f.hidden;
+      if (!f.hidden) { $('udNameInput').value = prefs.name || ''; $('udNameInput').focus(); }
+    } else if (act === 'appearance') {
+      prefs.theme = prefs.theme === 'dark' ? 'light' : 'dark'; savePrefs(); paintUser();
+    } else if (act === 'new') {
+      if (busy) return; current = null; render(); closeMenu(); box.focus();
+    } else if (act === 'about' || act === 'help') {
+      if (busy) return;
+      current = null; render(); frame.classList.add('chatting');
+      add('ai', act === 'about'
+        ? "I'm Kepler AI, a friendly assistant. Ask me questions, get help with writing or homework, or just chat. Your chats are saved in this browser only."
+        : "Type a message in the box and press Enter to send it. Use Tools for quick starters, the paperclip to add a text file, and Chat history in this menu to go back to an old chat.");
+      closeMenu();
+    } else if (act === 'clear') {
+      if (!clearArmed) { clearArmed = true; t.querySelector('.l span').textContent = 'Click again to clear'; return; }
+      chats = []; current = null; save(); render(); clearArmed = false; resetClear(); closeMenu();
+    }
+  });
+  $('udEdit').addEventListener('submit', e => {
+    e.preventDefault();
+    prefs.name = $('udNameInput').value.trim().slice(0, 40); savePrefs(); paintUser();
+    $('udEdit').hidden = true;
+  });
+
+  paintUser();
   render(); sync();
 </script>
 </body>
