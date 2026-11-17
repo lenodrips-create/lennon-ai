@@ -344,6 +344,9 @@ body.booting .frame,body.booting .ud,body.booting .side,body.signed-out .frame,b
 }
 .auth-oauth:hover{background:#f4f4f5}
 .auth-foot{text-align:center;font-size:14px;color:#71717a}
+.auth-skip{align-self:center;margin-top:-10px;padding:6px 14px;border-radius:999px;font-size:14px;color:#71717a;cursor:pointer;transition:background-color .15s,color .15s}
+.auth-skip:hover{background:#f4f4f5;color:#09090b}
+.auth-skip:disabled{opacity:.6;cursor:default}
 .auth :focus-visible{outline:2px solid #a78bfa;outline-offset:2px}
 .glass input:focus-visible{outline:none}
 
@@ -483,6 +486,7 @@ body.booting .frame,body.booting .ud,body.booting .side,body.signed-out .frame,b
       </button>
 
       <p class="ae d9 auth-foot" id="authFoot"><span id="authFootText">New to our platform? </span><a href="#" class="vlink" id="authFootLink" data-to="signup">Create Account</a></p>
+      <button type="button" class="ae d9 auth-skip" id="authSkip">Skip for now</button>
     </div>
   </section>
 </div>
@@ -558,7 +562,7 @@ body.booting .frame,body.booting .ud,body.booting .side,body.signed-out .frame,b
         <span class="l"><iconify-icon class="ic" icon="solar:trash-bin-trash-bold-duotone"></iconify-icon><span>Clear all chats</span></span>
       </button>
       <button type="button" class="ud-item" data-act="logout">
-        <span class="l"><iconify-icon class="ic" icon="solar:logout-2-bold-duotone"></iconify-icon><span>Log out</span></span>
+        <span class="l"><iconify-icon class="ic" icon="solar:logout-2-bold-duotone"></iconify-icon><span id="udLogoutLabel">Log out</span></span>
       </button>
     </section>
   </div>
@@ -620,6 +624,7 @@ body.booting .frame,body.booting .ud,body.booting .side,body.signed-out .frame,b
     $('authOr').hidden = $('authGithub').hidden = m === 'newpass';
     $('authPass').autocomplete = m === 'signin' ? 'current-password' : 'new-password';
     $('authFoot').hidden = !c.foot;
+    $('authSkip').hidden = m === 'newpass';
     if (c.foot) { $('authFootText').textContent = c.foot[0] + ' '; $('authFootLink').textContent = c.foot[1]; $('authFootLink').dataset.to = c.foot[2]; }
     say('');
   }
@@ -644,6 +649,20 @@ body.booting .frame,body.booting .ud,body.booting .side,body.signed-out .frame,b
   };
   $('authReset').onclick = e => { e.preventDefault(); setMode('reset'); };
   $('authFootLink').onclick = e => { e.preventDefault(); setMode(e.currentTarget.dataset.to); };
+  // Skip: sign in as a guest (a private, temporary Supabase account kept in this browser).
+  $('authSkip').onclick = async () => {
+    const btn = $('authSkip');
+    btn.disabled = true; say('');
+    try {
+      safe(() => localStorage.setItem(REMEMBER, '1'));
+      const { error } = await sb.auth.signInAnonymously();
+      if (error) say(/anonymous/i.test(error.message) ? 'Guest access is not turned on yet. Sign in or create an account.' : error.message);
+    } catch {
+      say('Could not reach the sign-in service. Check your connection and try again.');
+    } finally {
+      btn.disabled = false;
+    }
+  };
   $('authGithub').onclick = async () => {
     say('');
     const { error } = await sb.auth.signInWithOAuth({ provider: 'github', options: { redirectTo: SITE_URL } });
@@ -898,9 +917,11 @@ body.booting .frame,body.booting .ud,body.booting .side,body.signed-out .frame,b
 
   function paintUser() {
     const email = user?.email || '';
-    const name = (profile.name || '').trim() || email.split('@')[0] || 'You';
+    const guest = !!user?.is_anonymous;
+    const name = (profile.name || '').trim() || email.split('@')[0] || (guest ? 'Guest' : 'You');
     $('udName').textContent = name;
-    $('udHandle').textContent = email || 'Signed in';
+    $('udHandle').textContent = guest ? 'Guest, not signed in' : (email || 'Signed in');
+    $('udLogoutLabel').textContent = guest ? 'Sign in or create account' : 'Log out';
     const initials = name.split(/[\s._-]+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'Y';
     // Each account gets one of 20 avatars, picked from its user ID so it never changes.
     let h = 2166136261;
