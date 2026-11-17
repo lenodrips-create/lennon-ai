@@ -204,13 +204,30 @@ body{
 @media (min-width:900px){
   .frame{padding-left:calc(env(safe-area-inset-left,0px) + 276px)}
 }
+/* Phones and narrow windows: the chats panel becomes a slide-out drawer, opened with the ☰ button. */
+.side-toggle,.side-scrim{display:none}
 @media (max-width:899px){
-  .side{display:none}
-  .ud{bottom:auto;top:max(18px,env(safe-area-inset-top))}
-  .ud-content{bottom:auto;top:calc(100% + 8px);transform-origin:top left}
-  .ud-content.in{animation-name:ud-in-down}
+  .side{
+    z-index:40;width:min(300px,86vw);box-shadow:8px 0 40px rgba(0,0,0,.25);
+    transform:translateX(-105%);transition:transform .32s cubic-bezier(.4,0,.2,1);
+  }
+  body.side-open .side{transform:none}
+  .side-toggle{
+    display:flex;align-items:center;justify-content:center;position:fixed;z-index:35;
+    top:max(14px,env(safe-area-inset-top));left:max(14px,env(safe-area-inset-left));
+    width:42px;height:42px;border-radius:50%;cursor:pointer;
+    background:var(--card);color:var(--ink);border:1px solid var(--line);box-shadow:0 4px 16px rgba(0,0,0,.18);
+  }
+  .side-scrim{
+    display:block;position:fixed;inset:0;z-index:38;background:rgba(0,0,0,.32);
+    opacity:0;pointer-events:none;transition:opacity .32s ease;
+  }
+  body.side-open .side-scrim{opacity:1;pointer-events:auto}
+  body .ud{z-index:45;opacity:0;pointer-events:none;transform:translateX(-120px);transition:opacity .25s ease,transform .32s cubic-bezier(.4,0,.2,1)}
+  body.side-open .ud{opacity:1;pointer-events:auto;transform:none}
+  .ud-content{max-width:calc(86vw - 24px)}
+  .frame{padding-top:calc(max(14px,env(safe-area-inset-top)) + 54px)}
 }
-@keyframes ud-in-down{from{opacity:0;transform:scale(.95) translateY(-8px)}}
 
 /* ── User menu (bottom-left) ── */
 .ud,.ud-sub{font-family:var(--font-menu)}
@@ -289,7 +306,7 @@ body{
 .ud-edit button{height:34px;padding:0 12px;border-radius:8px;background:#18181b;color:#fff;font-weight:500;cursor:pointer}
 
 /* ── Login screen ── */
-body.booting .frame,body.booting .ud,body.booting .side,body.signed-out .frame,body.signed-out .ud,body.signed-out .side{visibility:hidden}
+body.booting .frame,body.booting .ud,body.booting .side,body.booting .side-toggle,body.signed-out .side-toggle,body.signed-out .frame,body.signed-out .ud,body.signed-out .side{visibility:hidden}
 .auth{
   position:fixed;inset:0;z-index:50;background:#ffffff;color:#09090b;overflow-y:auto;
   font-family:var(--font-text);display:flex;
@@ -491,6 +508,10 @@ body.booting .frame,body.booting .ud,body.booting .side,body.signed-out .frame,b
   </section>
 </div>
 
+<button type="button" class="side-toggle" id="sideToggle" aria-label="Open chats" aria-expanded="false">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+</button>
+<div class="side-scrim" id="sideScrim"></div>
 <aside class="side" id="side" aria-label="Chats">
   <div class="side-brand"><img src="brand/logo.png" alt="" width="38" height="25"><span>Kepler AI</span></div>
   <div class="side-head"><span class="side-title">Chats</span></div>
@@ -747,12 +768,23 @@ body.booting .frame,body.booting .ud,body.booting .side,body.signed-out .frame,b
       b.textContent = c.title || 'New chat';
       b.title = c.title || 'New chat';
       b.setAttribute('aria-current', String(c === current));
-      b.onclick = () => { if (busy) return; current = c; render(); box.focus(); };
+      b.onclick = () => { if (busy) return; current = c; render(); closeSide(); };
       li.appendChild(b);
       list.appendChild(li);
     }
   }
-  $('sideNew').onclick = () => { if (busy) return; current = null; render(); box.focus(); };
+  $('sideNew').onclick = () => { if (busy) return; current = null; render(); closeSide(); box.focus(); };
+
+  // Drawer (phones)
+  function openSide() { document.body.classList.add('side-open'); $('sideToggle').setAttribute('aria-expanded', 'true'); renderSide(); }
+  function closeSide() {
+    if (!document.body.classList.contains('side-open')) return;
+    document.body.classList.remove('side-open'); $('sideToggle').setAttribute('aria-expanded', 'false');
+    if (typeof closeMenu === 'function') closeMenu();
+  }
+  $('sideToggle').onclick = e => { e.stopPropagation(); document.body.classList.contains('side-open') ? closeSide() : openSide(); };
+  $('sideScrim').onclick = closeSide;
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && udMenu.hidden) closeSide(); });
 
   function render() {
     renderSide();
@@ -997,7 +1029,7 @@ body.booting .frame,body.booting .ud,body.booting .side,body.signed-out .frame,b
         const t = document.createElement('span'); t.className = 'ud-chat'; t.style.paddingLeft = '0';
         t.textContent = (c === current ? '• ' : '') + (c.title || 'New chat');
         b.appendChild(t);
-        b.onclick = e => { e.stopPropagation(); if (busy) return; current = c; render(); closeMenu(); };
+        b.onclick = e => { e.stopPropagation(); if (busy) return; current = c; render(); closeMenu(); closeSide(); };
         sub.appendChild(b);
       }
     }
@@ -1024,14 +1056,14 @@ body.booting .frame,body.booting .ud,body.booting .side,body.signed-out .frame,b
     } else if (act === 'appearance') {
       profile.theme = profile.theme === 'dark' ? 'light' : 'dark'; saveProfile(); paintUser();
     } else if (act === 'new') {
-      if (busy) return; current = null; render(); closeMenu(); box.focus();
+      if (busy) return; current = null; render(); closeMenu(); closeSide(); box.focus();
     } else if (act === 'about' || act === 'help') {
       if (busy) return;
       current = null; render(); frame.classList.add('chatting');
       add('ai', act === 'about'
         ? "I'm Kepler AI, a friendly assistant. Ask me questions, get help with writing or homework, or just chat. Your chats are saved to your account."
         : "Type a message in the box and press Enter to send it. Use Tools for quick starters, the paperclip to add a text file, and Chat history in this menu to go back to an old chat.");
-      closeMenu();
+      closeMenu(); closeSide();
     } else if (act === 'clear') {
       if (!clearArmed) { clearArmed = true; t.querySelector('.l span').textContent = 'Click again to clear'; return; }
       await sb.from('chats').delete().eq('user_id', user.id);
