@@ -213,7 +213,29 @@ After editing the function file, redeploy it (section 7). The `mode` column on t
 | Settings menu items | `$('sideGear').onclick` |
 | Pop-up menu look | `.s-pop{` |
 
-## 10. Audit report
+## 10. Replies: thinking, typing and the action bar
+
+- **Thinking:** while Kepler waits for the AI, the reply bubble shows a shimmering "Thinking" (or "Building" in Code mode) with three bouncing dots.
+- **Typing:** the reply then types itself out, at least 250 characters per second. Long replies speed up so none takes more than about 6 seconds. People whose device is set to reduce motion see the reply appear at once. The reply is saved as soon as it arrives, before the animation finishes.
+- **Action bar** under every Kepler reply:
+  - **Copy** the reply.
+  - **Rate** it Good or Bad. The rating is saved with the chat (as `feedback` on that message) and the icon turns orange.
+  - **Read aloud** using the device's built-in voice; click again to stop.
+  - **Share** opens the phone or computer's share sheet, or copies the text where that isn't available.
+  - **More:** **Retry** (latest reply only; asks again and replaces it); **Copy code** and **Copy text without code** when the reply has code; **Open preview** and **Download page** when it built a page.
+
+**Where to edit** (all in `index.html`):
+
+| What | Search for |
+|---|---|
+| Typing speed | `const rate = Math.max(0.25, total / 6000)`: `0.25` is characters per millisecond (250/second); `6000` is the longest time in ms |
+| "Thinking" / "Building" words | `'Building' : 'Thinking'` |
+| Dot and caret colour | `.dots i{` and `.caret::after` (`#C35120`) |
+| Action bar look | `.acts{` and `.act{` |
+| Action buttons and More menu items | `function addActions` |
+| Icons | `const ICONS` |
+
+## 11. Audit report
 
 **File:** `docs/compliance-audit-2026-11-18.md`
 
