@@ -215,8 +215,8 @@ After editing the function file, redeploy it (section 7). The `mode` column on t
 
 ## 10. Replies: thinking, typing and the action bar
 
-- **Thinking:** while Kepler waits for the AI, the reply bubble shows a shimmering "Thinking" (or "Building" in Code mode) with three bouncing dots.
-- **Typing:** the reply then types itself out, at least 250 characters per second. Long replies speed up so none takes more than about 6 seconds. People whose device is set to reduce motion see the reply appear at once. The reply is saved as soon as it arrives, before the animation finishes.
+- **Waiting:** while Kepler waits for the AI, the reply bubble shows three bouncing orange dots. Screen readers hear "Thinking" (or "Building" in Code mode).
+- **Typing:** the reply then types itself out, at least 70 characters per second. Long replies speed up so none takes more than about 15 seconds. People whose device is set to reduce motion see the reply appear at once. The reply is saved as soon as it arrives, before the animation finishes.
 - **Action bar** under every Kepler reply:
   - **Copy** the reply.
   - **Rate** it Good or Bad. The rating is saved with the chat (as `feedback` on that message) and the icon turns orange.
@@ -228,8 +228,8 @@ After editing the function file, redeploy it (section 7). The `mode` column on t
 
 | What | Search for |
 |---|---|
-| Typing speed | `const rate = Math.max(0.25, total / 6000)`: `0.25` is characters per millisecond (250/second); `6000` is the longest time in ms |
-| "Thinking" / "Building" words | `'Building' : 'Thinking'` |
+| Typing speed | `const rate = Math.max(0.07, total / 15000)`: `0.07` is characters per millisecond (70/second, smaller = slower); `15000` is the longest time in ms |
+| Screen-reader words while waiting | `'Building' : 'Thinking'` |
 | Dot and caret colour | `.dots i{` and `.caret::after` (`#C35120`) |
 | Action bar look | `.acts{` and `.act{` |
 | Action buttons and More menu items | `function addActions` |
