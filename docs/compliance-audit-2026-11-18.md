@@ -39,7 +39,7 @@ The audit fixed 13 code-level issues (section 11). **Score: 54 / 100** after tho
 
 | # | Issue | Status | Where |
 |---|---|---|---|
-| H1 | No rate limiting on the chat function. Since guest (anonymous) sign-in is enabled, anyone can create accounts and spend the Groq quota or bill. | Confirmed config; impact potential | `supabase/functions/lennon-chat/index.ts:75`; `index.html:695` |
+| H1 | No rate limiting on the chat function. Since guest (anonymous) sign-in is enabled, anyone can create accounts and spend the Groq quota or bill. | Partly fixed (19 Nov): 10 messages per account per day, enforced in the chat function. Guests can still make new guest accounts to get more. | `supabase/functions/lennon-chat/index.ts:75`; `index.html:695` |
 | H2 | Two CDN scripts loaded without Subresource Integrity. A compromised CDN file would run with full access to user sessions. | **Fixed:** pinned with `integrity` hashes. Supabase now loads its official prebuilt `supabase.js`, not jsDelivr's auto-minified copy. | `index.html:12–13` |
 | H3 | ⚖️ The system prompt makes the AI claim it was "made by Lennon" and avoid naming the underlying model. Two of its engines are Meta Llama 3.1 / 3.3. Their community licenses require visible "Built with Llama" attribution for products that use them, and a copy of the license. | Potential. **Partly addressed:** attribution added on `credits.html`; the prompt is unchanged (owner decision) | `lennon-chat/index.ts:49–51` |
 | H4 | No way for users to delete their account. "Clear all chats" removes chats but leaves the account and profile. Many privacy laws give a right to deletion. ⚖️ | Confirmed. Not fixed (needs a server function); privacy draft tells users to email | `index.html:598` |

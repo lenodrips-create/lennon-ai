@@ -71,6 +71,9 @@ const codeSystem = (name: string) =>
   `For questions that don't need a page (explaining code, fixing a bug, other languages), answer briefly and put any code in a code block with a language tag. ` +
   `Outside code blocks, write plain text without markdown headings, bold or tables.`;
 
+// Free messages per account per day (UTC). The website shows the same number: keep DAILY_LIMIT in index.html in step.
+const DAILY_LIMIT = 10;
+
 const MAX_MESSAGES = 30;
 const MAX_CHARS = 4000;          // per user message
 const MAX_REPLY_CHARS = 60000;   // per earlier assistant reply (Kepler Code replies hold whole files)
@@ -111,6 +114,7 @@ Deno.serve(async (req) => {
     },
   });
   if (!who.ok) return json({ error: "Your sign-in expired. Sign in again to keep chatting." }, 401, origin);
+  const uid: string | undefined = (await who.json().catch(() => null))?.id;
 
   // Accept the key under any of the names it might have been saved with in Supabase.
   const key = ["GROQ_API_KEY", "lennon api", "LENNON_API", "lennon_api", "LENNON API"]
@@ -146,73 +150,106 @@ Deno.serve(async (req) => {
   // Forward only role and text, so a client cannot slip extra fields (tool calls, names) through to Groq.
   messages = messages.map((m) => ({ role: m.role, content: m.content }));
 
-  const sys = { role: "system", content: code ? codeSystem(picked.name) : system(picked.name, picked.style) };
-  // Whole files need room: Kepler Code gets a bigger reply budget (thinking engines count their reasoning in it).
-  const budget = (e: { effort?: string; tokens: number }) => (code ? Math.max(e.tokens, e.effort ? 16384 : 8192) : e.tokens);
-  const MISSING = /model_not_found|does not exist|decommissioned|no longer supported|not found|unknown model/i;
-  const groq = (payload: Record<string, unknown>) =>
-    fetch("https://api.groq.com/openai/v1/chat/completions", {
+  // Daily limit: take one message now (atomically, as the user), give it back if no reply comes.
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const publicKey = Deno.env.get("SUPABASE_ANON_KEY") || "sb_publishable_KGnwpyai1gG2rHBj6XSnmA_VlK-Yc8a";
+  const rpc = (fn: string, body: unknown, bearer: string, apikey: string) =>
+    fetch(`${supabaseUrl}/rest/v1/rpc/${fn}`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ ...payload, messages: [sys, ...messages] }),
+      headers: { apikey, Authorization: `Bearer ${bearer}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
     });
+  const took = await rpc("kepler_take_message", { p_limit: DAILY_LIMIT }, token, publicKey);
+  if (!took.ok) {
+    console.error(`usage take failed ${took.status}: ${(await took.text()).slice(0, 200)}`);
+    return json({ error: "Kepler AI is not available right now. Try again later." }, 500, origin);
+  }
+  const remaining = Number(await took.json());
+  if (remaining < 0) {
+    return json({
+      error: `You've used all ${DAILY_LIMIT} of today's free messages. Buy credit to keep chatting, or come back tomorrow.`,
+      code: "limit", limit: DAILY_LIMIT, remaining: 0,
+    }, 429, origin);
+  }
+  const refund = async () => {
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!serviceKey || !uid) { console.error("usage refund skipped: no service key or user id"); return; }
+    const r = await rpc("kepler_refund_message", { p_user: uid }, serviceKey, serviceKey).catch(() => null);
+    if (!r?.ok) console.error(`usage refund failed ${r?.status}`);
+  };
+  const result = await reply();
+  if (result.status !== 200) await refund();
+  return result;
 
-  // Try one engine: first with its tuned settings, then (if Groq refuses a setting) with plain ones.
-  // Returns a Response to send back, "next" to try another engine, or "missing" if the model is gone.
-  async function attempt(id: string, tuned: Record<string, unknown>): Promise<Response | "next" | "missing"> {
-    const payloads = Object.keys(tuned).length ? [{ model: id, ...tuned }, { model: id }] : [{ model: id }];
-    for (const payload of payloads) {
-      const res = await groq(payload);
-      if (res.ok) {
-        const data = await res.json();
-        const reply = data?.choices?.[0]?.message?.content ?? "";
-        if (reply.trim()) return json({ reply }, 200, origin);
-        console.error(`groq ${id}: empty reply`, JSON.stringify(payload).slice(0, 120));
-        continue;
+  async function reply(): Promise<Response> {
+    const sys = { role: "system", content: code ? codeSystem(picked.name) : system(picked.name, picked.style) };
+    // Whole files need room: Kepler Code gets a bigger reply budget (thinking engines count their reasoning in it).
+    const budget = (e: { effort?: string; tokens: number }) => (code ? Math.max(e.tokens, e.effort ? 16384 : 8192) : e.tokens);
+    const MISSING = /model_not_found|does not exist|decommissioned|no longer supported|not found|unknown model/i;
+    const groq = (payload: Record<string, unknown>) =>
+      fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payload, messages: [sys, ...messages] }),
+      });
+
+    // Try one engine: first with its tuned settings, then (if Groq refuses a setting) with plain ones.
+    // Returns a Response to send back, "next" to try another engine, or "missing" if the model is gone.
+    async function attempt(id: string, tuned: Record<string, unknown>): Promise<Response | "next" | "missing"> {
+      const payloads = Object.keys(tuned).length ? [{ model: id, ...tuned }, { model: id }] : [{ model: id }];
+      for (const payload of payloads) {
+        const res = await groq(payload);
+        if (res.ok) {
+          const data = await res.json();
+          const reply = data?.choices?.[0]?.message?.content ?? "";
+          if (reply.trim()) return json({ reply, remaining, limit: DAILY_LIMIT }, 200, origin);
+          console.error(`groq ${id}: empty reply`, JSON.stringify(payload).slice(0, 120));
+          continue;
+        }
+        const text = await res.text();
+        console.error(`groq ${id} ${res.status}: ${text.slice(0, 400)}`);
+        if (res.status === 401) {
+          console.error("Groq rejected the key: check the GROQ_API_KEY secret");
+          return json({ error: "Kepler AI is not available right now. Try again later." }, 502, origin);
+        }
+        if (res.status === 429) return json({ error: "Too many messages. Wait a moment and try again." }, 429, origin);
+        if ((res.status === 404 || res.status === 400) && MISSING.test(text)) return "missing";
+        if (res.status >= 500) return "next";
+        // Other 400s: Groq refused a setting; loop retries with plain settings.
       }
-      const text = await res.text();
-      console.error(`groq ${id} ${res.status}: ${text.slice(0, 400)}`);
-      if (res.status === 401) {
-        console.error("Groq rejected the key: check the GROQ_API_KEY secret");
-        return json({ error: "Kepler AI is not available right now. Try again later." }, 502, origin);
-      }
-      if (res.status === 429) return json({ error: "Too many messages. Wait a moment and try again." }, 429, origin);
-      if ((res.status === 404 || res.status === 400) && MISSING.test(text)) return "missing";
-      if (res.status >= 500) return "next";
-      // Other 400s: Groq refused a setting; loop retries with plain settings.
+      return "next";
     }
-    return "next";
-  }
 
-  const tried = new Set<string>();
-  const gone = new Set<string>();
-  for (const eng of picked.chain) {
-    const k = eng.id + (eng.effort ?? "");
-    if (gone.has(eng.id) || tried.has(k)) continue;
-    tried.add(k);
-    const out = await attempt(eng.id, { max_tokens: budget(eng), ...(eng.effort ? { reasoning_effort: eng.effort } : {}) });
-    if (out === "missing") { gone.add(eng.id); continue; }
-    if (out !== "next") return out;
-  }
-
-  // Last resort: ask Groq which models this key can use and try a sensible one.
-  try {
-    const list = await fetch("https://api.groq.com/openai/v1/models", { headers: { Authorization: `Bearer ${key}` } });
-    if (list.ok) {
-      const ids: string[] = ((await list.json())?.data ?? []).map((m: { id: string }) => m.id)
-        .filter((id: string) => !/whisper|tts|guard|playai|orpheus|prompt-guard|compound/i.test(id) && !gone.has(id));
-      const prefer = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
-      ids.sort((a, b) => (prefer.indexOf(a) + 1 || 99) - (prefer.indexOf(b) + 1 || 99));
-      for (const id of ids.slice(0, 4)) {
-        const out = await attempt(id, {});
-        if (out instanceof Response) return out;
-      }
-    } else {
-      console.error(`groq models ${list.status}: ${(await list.text()).slice(0, 300)}`);
+    const tried = new Set<string>();
+    const gone = new Set<string>();
+    for (const eng of picked.chain) {
+      const k = eng.id + (eng.effort ?? "");
+      if (gone.has(eng.id) || tried.has(k)) continue;
+      tried.add(k);
+      const out = await attempt(eng.id, { max_tokens: budget(eng), ...(eng.effort ? { reasoning_effort: eng.effort } : {}) });
+      if (out === "missing") { gone.add(eng.id); continue; }
+      if (out !== "next") return out;
     }
-  } catch (e) {
-    console.error("groq models list failed", String(e));
-  }
 
-  return json({ error: "No Groq model is available right now." }, 502, origin);
+    // Last resort: ask Groq which models this key can use and try a sensible one.
+    try {
+      const list = await fetch("https://api.groq.com/openai/v1/models", { headers: { Authorization: `Bearer ${key}` } });
+      if (list.ok) {
+        const ids: string[] = ((await list.json())?.data ?? []).map((m: { id: string }) => m.id)
+          .filter((id: string) => !/whisper|tts|guard|playai|orpheus|prompt-guard|compound/i.test(id) && !gone.has(id));
+        const prefer = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
+        ids.sort((a, b) => (prefer.indexOf(a) + 1 || 99) - (prefer.indexOf(b) + 1 || 99));
+        for (const id of ids.slice(0, 4)) {
+          const out = await attempt(id, {});
+          if (out instanceof Response) return out;
+        }
+      } else {
+        console.error(`groq models ${list.status}: ${(await list.text()).slice(0, 300)}`);
+      }
+    } catch (e) {
+      console.error("groq models list failed", String(e));
+    }
+
+    return json({ error: "No Groq model is available right now." }, 502, origin);
+  }
 });

@@ -235,7 +235,27 @@ After editing the function file, redeploy it (section 7). The `mode` column on t
 | Action buttons and More menu items | `function addActions` |
 | Icons | `const ICONS` |
 
-## 11. Audit report
+## 11. Daily message limit and "Buy credit"
+
+**What it does:** each account (guests included) gets **10 messages a day**. The count resets at **midnight UTC**.
+
+- The chat function counts each message **before** asking the AI and gives it back if the AI fails, so errors don't use up messages. Because the count lives on the server, it can't be bypassed by editing the web page.
+- When 3 or fewer are left, the message box shows "3 left today". At 0 it shows "No messages left today" in red.
+- When someone runs out, their unsent message goes back into the box. Kepler then shows "You've used all 10 of today's free messages. Buy credit to keep chatting, or come back in …" with a **Buy credit** button.
+- **Buy credit** opens a "coming soon" box. **No payments are set up.** The settings gear also shows "Messages today" and "Buy credit".
+
+**Where it's stored:** the `usage` table in Supabase (one row per user per day). Users can read only their own row and can't change it. Two database functions do the counting: `kepler_take_message` and `kepler_refund_message`. The refund function can only be run by the server.
+
+**To change the limit:** change `DAILY_LIMIT = 10` in **both** `supabase/functions/lennon-chat/index.ts` and `index.html`, then redeploy the function.
+
+**To give someone more messages today** (Supabase → SQL editor):
+```sql
+update public.usage set count = 0 where user_id = '<their user id>' and day = (now() at time zone 'utc')::date;
+```
+
+**Known gap:** a guest can sign out and press "Skip for now" to get a fresh guest account with 10 more messages. To close it, turn off anonymous sign-ins in Supabase (Authentication → Sign In / Providers) or give guests a lower limit.
+
+## 12. Audit report
 
 **File:** `docs/compliance-audit-2026-11-18.md`
 

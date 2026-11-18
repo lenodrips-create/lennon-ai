@@ -147,6 +147,24 @@ body{
 .act:hover,.act[aria-expanded="true"]{background:rgba(0,0,0,.06);color:#18181b}
 .act.on{color:#C35120}
 
+/* ── Daily limit: messages-left note, Buy credit button and dialog ── */
+.left-note{font-size:13px;color:var(--muted);margin-right:6px;white-space:nowrap;font-family:var(--font-menu)}
+.left-note.out{color:#b42318}
+.buy-btn{
+  display:inline-flex;align-items:center;gap:8px;margin-top:12px;padding:9px 18px;border-radius:999px;
+  background:#C35120;color:#fff;font:500 15px var(--font-menu);cursor:pointer;transition:background .15s;
+}
+.buy-btn:hover{background:#a8441a}
+.credit{
+  margin:auto;width:min(380px,calc(100vw - 32px));padding:24px;border:0;border-radius:22px;
+  background:#fff;color:#1f2937;box-shadow:0 24px 64px rgba(0,0,0,.28);font-family:var(--font-menu);
+}
+.credit::backdrop{background:rgba(0,0,0,.4)}
+.credit h2{font:600 22px var(--font-display);margin-bottom:8px}
+.credit p{font-size:15px;line-height:1.55;color:#4b5563;margin-bottom:8px}
+.credit form{display:flex;justify-content:flex-end;margin-top:16px}
+.credit button{padding:9px 20px;border-radius:999px;background:#1f2937;color:#fff;font-weight:500;cursor:pointer}
+
 /* ── Composer ── */
 .card{
   position:relative;flex:none;width:min(var(--w),100%);
@@ -565,6 +583,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
 
 
           <span class="spacer"></span>
+          <span class="left-note" id="leftNote" aria-live="polite" hidden></span>
 
           <button type="button" class="ibtn model" id="modelBtn" aria-haspopup="menu" aria-expanded="false">
             <span class="label" id="modelLabel">Titan 5.5</span>
@@ -765,6 +784,13 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   </div>
 </aside>
 
+<dialog class="credit" id="creditDlg" aria-labelledby="creditTitle">
+  <h2 id="creditTitle">Buy credit</h2>
+  <p>Buying extra messages is coming soon.</p>
+  <p id="creditReset"></p>
+  <form method="dialog"><button type="submit">OK</button></form>
+</dialog>
+
 <aside class="pv" id="pv" aria-label="Kepler Code preview" hidden>
   <div class="pv-resize" id="pvResize" role="separator" aria-orientation="vertical" aria-label="Resize preview" tabindex="0"></div>
   <div class="pv-head">
@@ -943,6 +969,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     if (!p.data) sb.from('profiles').upsert({ id: user.id, ...profile });
     chats = c.data || [];
     current = null;
+    loadUsage();
     paintUser(); render(); sync();
   }
   const saveProfile = () => user && sb.from('profiles').upsert({ id: user.id, ...profile, updated_at: new Date().toISOString() }).then(() => {});
@@ -1133,6 +1160,9 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
         vid.paused ? vid.play().catch(() => {}) : vid.pause();
         setTimeout(() => { el.querySelector('.v').textContent = vid.paused ? 'Off' : 'On'; }, 50);
       } },
+      { label: 'Messages today', value: left === null ? `${DAILY_LIMIT} a day` : `${left} of ${DAILY_LIMIT} left`, run: () => {} },
+      { label: 'Buy credit', run: () => { closePop(); buyCredit(); } },
+      '-',
       { label: 'Default mode', value: chatMode === 'code' ? 'Code' : 'Chat', run: el => {
         setChatMode(chatMode === 'code' ? 'chat' : 'code');
         el.querySelector('.v').textContent = chatMode === 'code' ? 'Code' : 'Chat';
@@ -1447,12 +1477,71 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   }
   async function retry(chat) {
     if (busy || chat !== current) return;
+    if (outOfMessages()) { showLimit(); return; }
     const lastMsg = chat.messages[chat.messages.length - 1];
     if (!lastMsg || lastMsg.role !== 'assistant') return;
     chat.messages.pop();
     render();
-    await ask(chat);
+    await ask(chat, true);
   }
+
+  // ── Daily message limit. The chat function enforces it; this only shows it. ──
+  const DAILY_LIMIT = 10; // keep in step with DAILY_LIMIT in the chat function
+  let left = null, usageDay = null; // messages left today (null = not known yet)
+  const utcDay = () => new Date().toISOString().slice(0, 10);
+  const outOfMessages = () => left === 0 && usageDay === utcDay();
+  function resetIn() {
+    const now = new Date(), next = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
+    const mins = Math.max(1, Math.ceil((next - now) / 60000)), h = Math.floor(mins / 60), m = mins % 60;
+    return h ? `${h} h ${m} min` : `${m} min`;
+  }
+  async function loadUsage() {
+    const day = utcDay();
+    const { data, error } = await sb.from('usage').select('count').eq('day', day).maybeSingle();
+    if (error) { left = null; paintLeft(); return; }
+    left = Math.max(0, DAILY_LIMIT - (data?.count || 0)); usageDay = day; paintLeft();
+  }
+  function paintLeft() {
+    const n = $('leftNote');
+    if (usageDay !== utcDay()) { left = null; usageDay = null; }
+    n.hidden = left === null || left > 3;
+    n.classList.toggle('out', left === 0);
+    n.textContent = left === 0 ? 'No messages left today' : `${left} left today`;
+  }
+  // The server said the limit is reached: undo the unanswered message (it goes back in the box) and show Buy credit.
+  function limitReached(chat, out, retrying) {
+    left = 0; usageDay = utcDay(); paintLeft();
+    out.remove();
+    if (!retrying) {
+      const lastMsg = chat.messages[chat.messages.length - 1];
+      if (lastMsg && lastMsg.role === 'user') {
+        chat.messages.pop();
+        const ub = log.lastElementChild;
+        if (ub && ub.classList.contains('user')) ub.remove();
+        if (!box.value) { box.value = lastMsg.content; sync(); }
+      }
+      if (!chat.messages.length) { chats = chats.filter(c => c !== chat); if (current === chat) current = null; renderSide(); }
+    }
+    showLimit();
+  }
+  function showLimit() {
+    frame.classList.add('chatting');
+    log.querySelectorAll('.msg.limit').forEach(x => x.remove());
+    const d = document.createElement('div');
+    d.className = 'msg ai limit';
+    d.dataset.who = chatMode === 'code' ? 'Kepler Code' : 'Kepler AI';
+    const t = document.createElement('div'); t.className = 'msg-text';
+    t.textContent = `You've used all ${DAILY_LIMIT} of today's free messages. Buy credit to keep chatting, or come back in ${resetIn()}.`;
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'buy-btn'; b.textContent = 'Buy credit';
+    b.onclick = buyCredit;
+    d.append(t, b);
+    log.appendChild(d); log.scrollTop = log.scrollHeight;
+  }
+  function buyCredit() {
+    $('creditReset').textContent = `Your ${DAILY_LIMIT} free messages come back in ${resetIn()} (at midnight UTC).`;
+    $('creditDlg').showModal();
+  }
+  setInterval(paintLeft, 60000); // clears the "no messages left" state after midnight UTC
 
   // Preview panel. The page runs in a sandboxed frame with no access to this site, its storage or sign-in.
   const pv = $('pv'), pvFrame = $('pvFrame');
@@ -1615,6 +1704,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     const text = box.value.trim();
     if (!text || busy || !user) return;
     if (text.length > 4000) { frame.classList.add('chatting'); add('ai error', 'That message is too long. Keep it under 4,000 characters.'); return; }
+    if (outOfMessages()) { showLimit(); return; }
     box.value = ''; sync();
     if (!current) {
       current = { id: null, title: text.slice(0, 40), messages: [], mode: chatMode };
@@ -1628,7 +1718,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     await ask(current);
   }
   // Ask the AI for the next reply in a chat: show "Thinking", then type the reply out.
-  async function ask(chat) {
+  async function ask(chat, retrying = false) {
     busy = true; sendBtn.disabled = true; sync();
     frame.classList.add('chatting');
     const out = add('ai', '');
@@ -1643,7 +1733,9 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
         body: JSON.stringify({ model, effort, mode: chat.mode || 'chat', messages: payload(chat) }),
       });
       const data = await res.json().catch(() => ({}));
+      if (!res.ok && data.code === 'limit') { limitReached(chat, out, retrying); return; }
       if (!res.ok) { fail(out, data.error || 'Something went wrong. Try again.'); return; }
+      if (typeof data.remaining === 'number') { left = data.remaining; usageDay = utcDay(); paintLeft(); }
       const msg = { role: 'assistant', content: data.reply };
       chat.messages.push(msg);
       saveChat(chat).catch(() => {}); saved = true;
@@ -1658,7 +1750,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
       fail(out, 'Could not reach Kepler AI. Check your connection and try again.');
     } finally {
       log.setAttribute('aria-busy', 'false');
-      if (!saved) saveChat(chat).catch(() => {});
+      if (!saved && chat.messages.length) saveChat(chat).catch(() => {});
       busy = false; sendBtn.disabled = false; sync();
       if (log.scrollHeight - log.scrollTop - log.clientHeight < 120) log.scrollTop = log.scrollHeight;
       box.focus();
