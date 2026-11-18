@@ -169,13 +169,13 @@ The audit changes and Kepler Code were deployed on 18 November 2026 (function ve
 
 ## 8. Kepler Code (coding mode with live preview)
 
-**What it is:** the **Code** button in the message box (next to Tools) switches to Kepler Code. It builds websites, apps and games in HTML, CSS and JavaScript. When a reply contains a page, a card appears in the chat and a **preview panel** opens on the right. The panel has:
+**What it is:** the **Chat / Code switch** at the top of the sidebar turns on Kepler Code. It builds websites, apps and games in HTML, CSS and JavaScript. When a reply contains a page, a card appears in the chat and a **preview panel** opens on the right. The panel has:
 
 - **Preview / Code** tabs (the running page, or its source)
 - **Reload**, **Copy**, **Download** (saves an `.html` file), **Full screen** and **Close** buttons
 - a left edge you can drag (or focus and use ← →) to resize it; the width is remembered
 
-On phones the panel fills the screen. Each chat remembers which mode it started in. Code chats show `</>` in the sidebar, and switching modes in the middle of a chat starts a new one.
+On phones the panel fills the screen. Each chat remembers which mode it started in. **Recents only lists chats of the current mode**, so switching to Code shows your code projects and switching back shows your chats. Switching modes in the middle of a chat starts a new one.
 
 **Safety:** previews run in a sandboxed frame (`sandbox="allow-scripts allow-modals allow-forms allow-popups"`, **without** `allow-same-origin`). Code the AI writes can't read your site, its storage or anyone's sign-in. Don't add `allow-same-origin` to that frame.
 
@@ -189,7 +189,6 @@ On phones the panel fills the screen. Each chat remembers which mode it started 
 | Quick-start prompts in the Tools menu | `index.html` | `const STARTERS` |
 | Card and code-block look | `index.html` | `Kepler Code: reply cards` |
 | Preview panel look, default width | `index.html` | `Kepler Code: preview panel` (`--pv-w`) |
-| Code button colours | `index.html` | `.mode-btn[aria-pressed="true"]` |
 
 After editing the function file, redeploy it (section 7). The `mode` column on the `chats` table (`chat` or `code`) stores each chat's mode.
 
@@ -197,7 +196,8 @@ After editing the function file, redeploy it (section 7). The `mode` column on t
 
 **Layout (top to bottom):** logo with the current mode name (Chat or Code) and the **Chat / Code switch** at the top-right; **New**, **Search** and **More**; **Recents** (click to collapse; shows 15 chats, then **Show more**); and at the bottom your **account** (opens the account menu) with the **settings gear** on the right.
 
-- **Search** filters chats by title and message text. Press Esc to close it.
+- **Recents** shows only the current mode's chats (Chat or Code).
+- **Search** filters those chats by title and message text. Press Esc to close it.
 - **More** has About, Get help, What's new, Privacy, Terms and Credits.
 - **Settings (gear)** has Appearance (light or dark message box), Background video on or off, Default mode, and Account.
 - Hovering a chat shows **…** with **Rename** and **Delete** (click Delete twice to confirm).
@@ -206,7 +206,7 @@ After editing the function file, redeploy it (section 7). The `mode` column on t
 
 | What | Search for |
 |---|---|
-| Sidebar colours (background, text, hover) | `--s-bg:#1f1f1e` (the `--s-` values on the next lines) |
+| Sidebar colours (background, text, hover) | `--s-bg:#f7f7f5` (the `--s-` values on the same line) |
 | Width | `width:calc(260px` in the `.side{` rule, and `276px` in `.frame{padding-left` (keep that 16px bigger) |
 | Number of chats before "Show more" | `const SHOW = 15` |
 | More menu items | `$('sideMoreBtn').onclick` |

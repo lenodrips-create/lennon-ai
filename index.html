@@ -162,8 +162,6 @@ body{
 .send.ready:hover{filter:brightness(1.15)}
 .send:active{transform:scale(.94)}
 .send:disabled{cursor:default}
-.mode-btn[aria-pressed="true"]{background:#fbeee8;color:#C35120}
-:root[data-box="dark"] .mode-btn[aria-pressed="true"]{background:rgba(195,81,32,.22);color:#f2a27c}
 #file{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip-path:inset(50%)}
 .tools:has(#file:focus-visible) .attach{outline:2px solid var(--accent);outline-offset:2px}
 
@@ -200,23 +198,23 @@ body{
 .menu [aria-checked="true"] .check{visibility:visible}
 .menu .mname{font-weight:500}
 
-/* ── Sidebar (left): dark panel with mode switch, New / Search / More, Recents and account row ── */
+/* ── Sidebar (left): light panel with mode switch, New / Search / More, Recents and account row ── */
 .side{
-  --s-bg:#1f1f1e;--s-ink:#ececea;--s-soft:#c3c2bc;--s-muted:#9b9a93;--s-hover:rgba(255,255,255,.06);--s-active:rgba(255,255,255,.1);--s-line:rgba(255,255,255,.08);
+  --s-bg:#f7f7f5;--s-ink:#1f1f1e;--s-soft:#57564f;--s-muted:#6b6a63;--s-hover:rgba(0,0,0,.05);--s-active:rgba(0,0,0,.08);--s-line:rgba(0,0,0,.08);
   position:fixed;z-index:20;left:0;top:0;bottom:0;width:calc(260px + env(safe-area-inset-left,0px));
   display:flex;flex-direction:column;gap:2px;
   padding:max(12px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom)) calc(10px + env(safe-area-inset-left,0px));
   background:var(--s-bg);color:var(--s-ink);border-right:1px solid var(--s-line);font-family:var(--font-menu);
 }
-.side :focus-visible{outline:2px solid #e8a07c;outline-offset:1px}
+.side :focus-visible{outline:2px solid #C35120;outline-offset:1px}
 .side-top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 2px 12px 8px}
 .side-brand{display:flex;align-items:center;gap:10px;min-width:0}
 .side-brand img{height:22px;width:auto;display:block;flex:none}
 .side-brand span{font-family:var(--font-display);font-weight:500;font-size:24px;line-height:1;letter-spacing:-.01em}
-.seg{display:flex;gap:2px;padding:3px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid var(--s-line);flex:none}
+.seg{display:flex;gap:2px;padding:3px;border-radius:12px;background:rgba(0,0,0,.04);border:1px solid var(--s-line);flex:none}
 .seg button{width:34px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:9px;color:var(--s-muted);cursor:pointer;transition:background .15s,color .15s}
 .seg button:hover{color:var(--s-ink)}
-.seg button[aria-pressed="true"]{background:rgba(255,255,255,.13);color:var(--s-ink);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.seg button[aria-pressed="true"]{background:#fff;color:var(--s-ink);box-shadow:0 1px 2px rgba(0,0,0,.1),inset 0 0 0 1px rgba(0,0,0,.06)}
 .side-nav{display:flex;flex-direction:column;gap:1px}
 .s-item{
   display:flex;align-items:center;gap:12px;width:100%;height:36px;padding:0 10px;border-radius:10px;
@@ -224,7 +222,7 @@ body{
 }
 .s-item:hover,.s-item[aria-expanded="true"]{background:var(--s-hover)}
 .s-item svg{flex:none;color:var(--s-soft)}
-.side-search{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:10px;background:rgba(255,255,255,.08)}
+.side-search{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:10px;background:#fff;box-shadow:inset 0 0 0 1px var(--s-line)}
 .side-search svg{flex:none;color:var(--s-soft)}
 .side-search input{flex:1;min-width:0;background:transparent;outline:none;font-size:15px;color:var(--s-ink)}
 .side-search input::placeholder{color:var(--s-muted)}
@@ -235,7 +233,7 @@ body{
 .side-label:hover{color:var(--s-soft)}
 .side-label svg{transition:transform .15s}
 .side-label[aria-expanded="false"] svg{transform:rotate(-90deg)}
-.side-list{list-style:none;flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:1px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.18) transparent}
+.side-list{list-style:none;flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:1px;scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.18) transparent}
 .side-list li{position:relative;display:flex;align-items:center;border-radius:10px}
 .side-list li:hover{background:var(--s-hover)}
 .side-list li.on{background:var(--s-active)}
@@ -244,32 +242,31 @@ body{
   font-size:14.5px;color:var(--s-ink);cursor:pointer;
 }
 .chat-btn .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chat-btn .k{flex:none;color:#e8a07c}
 .chat-dots{
   flex:none;width:30px;height:30px;margin-right:3px;display:flex;align-items:center;justify-content:center;border-radius:8px;
   color:var(--s-soft);cursor:pointer;opacity:0;
 }
 .side-list li:hover .chat-dots,.side-list li.on .chat-dots,.chat-dots:focus-visible,.chat-dots[aria-expanded="true"]{opacity:1}
-.chat-dots:hover{background:rgba(255,255,255,.1);color:var(--s-ink)}
+.chat-dots:hover{background:rgba(0,0,0,.07);color:var(--s-ink)}
 @media (hover:none){.chat-dots{opacity:1}}
-.chat-edit{flex:1;margin:2px;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,.1);outline:1px solid rgba(255,255,255,.25);font-size:14.5px;color:var(--s-ink)}
+.chat-edit{flex:1;margin:2px;padding:6px 8px;border-radius:8px;background:#fff;outline:1px solid #C35120;font-size:14.5px;color:var(--s-ink)}
 .side-more{padding:8px 10px;font-size:14px;color:var(--s-muted);text-align:left;cursor:pointer;border-radius:10px}
 .side-more:hover{color:var(--s-ink);background:var(--s-hover)}
 .side-empty{font-size:13.5px;color:var(--s-muted);padding:8px 10px;line-height:1.45}
 .side-foot{display:flex;align-items:center;gap:4px;margin:6px -10px 0;padding:10px 10px 0;border-top:1px solid var(--s-line)}
 .s-gear{flex:none;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:10px;color:var(--s-soft);cursor:pointer}
 .s-gear:hover,.s-gear[aria-expanded="true"]{background:var(--s-hover);color:var(--s-ink)}
-/* Small light pop-up menus opened from the sidebar (More, Settings, chat options) */
+/* Small pop-up menus opened from the sidebar (More, Settings, chat options) */
 .s-pop{
   position:fixed;z-index:60;min-width:200px;max-width:calc(100vw - 16px);padding:5px;border-radius:14px;
-  background:#2a2a28;color:#ececea;border:1px solid rgba(255,255,255,.1);box-shadow:0 16px 40px rgba(0,0,0,.35);
+  background:#fff;color:#1f1f1e;border:1px solid #e5e7eb;box-shadow:0 16px 40px rgba(0,0,0,.16);
   font-family:var(--font-menu);font-size:14.5px;
 }
 .s-pop button,.s-pop a{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;padding:8px 10px;border-radius:9px;text-align:left;cursor:pointer;color:inherit}
-.s-pop button:hover,.s-pop a:hover,.s-pop button:focus-visible,.s-pop a:focus-visible{background:rgba(255,255,255,.08);outline:none}
-.s-pop .v{color:#9b9a93;font-size:13.5px}
-.s-pop .danger{color:#f3907a}
-.s-pop hr{border:0;height:1px;background:rgba(255,255,255,.08);margin:4px 2px}
+.s-pop button:hover,.s-pop a:hover,.s-pop button:focus-visible,.s-pop a:focus-visible{background:#f3f4f6;outline:none}
+.s-pop .v{color:#6b7280;font-size:13.5px}
+.s-pop .danger{color:#b42318}
+.s-pop hr{border:0;height:1px;background:#eceef1;margin:4px 2px}
 @media (min-width:900px){
   .frame{padding-left:calc(env(safe-area-inset-left,0px) + 276px)}
 }
@@ -545,10 +542,6 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
             <span>Tools</span>
           </button>
 
-          <button type="button" class="ibtn mode-btn" id="codeBtn" aria-pressed="false" title="Kepler Code: build websites, apps and games with a live preview">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 7-5 5 5 5M16 7l5 5-5 5"/></svg>
-            <span>Code</span>
-          </button>
 
           <span class="spacer"></span>
 
@@ -952,16 +945,18 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   // ── Sidebar: Recents list (search, show more, per-chat Rename/Delete) ──
   const SHOW = 15;
   let showAll = false, query = '';
+  const inMode = c => (c.mode || 'chat') === chatMode;
   const matches = c => !query || (c.title || '').toLowerCase().includes(query) ||
     (c.messages || []).some(m => typeof m.content === 'string' && m.content.toLowerCase().includes(query));
   function renderSide() {
     const list = $('sideList');
     list.innerHTML = '';
-    const found = chats.filter(matches);
+    const found = chats.filter(c => inMode(c) && matches(c));
     if (!found.length) {
       const li = document.createElement('li');
       li.className = 'side-empty';
-      li.textContent = query ? 'No chats match your search.' : 'No chats yet. Send a message to start one.';
+      li.textContent = query ? 'No chats match your search.'
+        : chatMode === 'code' ? 'No code projects yet. Describe something to build.' : 'No chats yet. Send a message to start one.';
       list.appendChild(li);
       return;
     }
@@ -975,7 +970,6 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
       b.setAttribute('aria-current', String(c === current));
       const t = document.createElement('span'); t.className = 't'; t.textContent = c.title || 'New chat';
       b.appendChild(t);
-      if (c.mode === 'code') b.insertAdjacentHTML('beforeend', '<svg class="k" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-label="Code chat" role="img"><path d="m8 7-5 5 5 5M16 7l5 5-5 5"/></svg>');
       b.onclick = () => { if (busy) return; current = c; render(); closeSide(); };
       const d = document.createElement('button');
       d.type = 'button'; d.className = 'chat-dots';
@@ -1179,7 +1173,6 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   function paintMode() {
     const code = chatMode === 'code';
     document.body.classList.toggle('code-mode', code);
-    $('codeBtn').setAttribute('aria-pressed', String(code));
     $('segChat').setAttribute('aria-pressed', String(!code));
     $('segCode').setAttribute('aria-pressed', String(code));
     $('sideTitle').textContent = code ? 'Code' : 'Chat';
@@ -1197,8 +1190,9 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     // A chat keeps the mode it started in, so switching modes mid-chat starts a new one.
     if (current && current.messages.length && (current.mode || 'chat') !== chatMode) { current = null; render(); }
     else paintMode();
+    showAll = false;
+    renderSide();
   }
-  $('codeBtn').onclick = () => { setChatMode(chatMode === 'code' ? 'chat' : 'code'); box.focus(); };
   $('segChat').onclick = () => setChatMode('chat');
   $('segCode').onclick = () => setChatMode('code');
 
@@ -1624,7 +1618,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     current = null; render(); frame.classList.add('chatting');
     add('ai', act === 'about'
         ? "I'm Kepler AI, a friendly assistant. Ask me questions, get help with writing or homework, or just chat. I can make mistakes, so check important answers. Signed-in chats are saved to your account; guest chats stay with this browser's guest session."
-        : "Type a message in the box and press Enter to send it. Use Tools for quick starters and the paperclip to add a text file. Your chats are listed under Recents on the left; use Search to find one. Switch to Code (top of the sidebar, or the Code button) to use Kepler Code: it builds websites, apps and games and shows them working in a preview on the right.");
+        : "Type a message in the box and press Enter to send it. Use Tools for quick starters and the paperclip to add a text file. Your chats are listed under Recents on the left; use Search to find one. Switch to Code at the top of the sidebar to use Kepler Code: it builds websites, apps and games and shows them working in a preview on the right.");
       closeMenu(); closeSide();
   }
   $('udEdit').addEventListener('submit', e => {
