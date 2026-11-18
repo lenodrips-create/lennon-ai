@@ -99,10 +99,32 @@ body{
   font-family:var(--font-reply);line-height:1.6;box-shadow:0 6px 24px rgba(0,0,0,.12);
 }
 .msg.ai::before{
-  content:"Kepler AI";display:block;margin-bottom:2px;
+  content:attr(data-who);display:block;margin-bottom:2px;
   font-family:var(--font-display);font-size:13px;font-weight:600;color:#c2410c;
 }
 .msg.error{color:#b45309}
+
+/* ── Kepler Code: reply cards and code blocks ── */
+.msg-text{white-space:pre-wrap}
+.msg-text+.msg-text{margin-top:8px}
+.code-card{
+  display:flex;align-items:center;gap:12px;width:100%;min-width:min(300px,62vw);margin:10px 0 4px;padding:10px 12px;
+  border:1px solid #e5e7eb;border-radius:14px;background:#f9fafb;color:#1f2937;text-align:left;cursor:pointer;white-space:normal;
+  font-family:var(--font-menu);transition:border-color .15s,background .15s;
+}
+.code-card:hover{border-color:#C35120;background:#fff}
+.code-card[aria-current="true"]{border-color:#C35120}
+.cc-ic{width:38px;height:38px;border-radius:10px;background:#fbeee8;color:#C35120;display:flex;align-items:center;justify-content:center;flex:none}
+.cc-txt{display:flex;flex-direction:column;min-width:0;flex:1}
+.cc-title{font-weight:500;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-sub{font-size:13px;color:#6b7280}
+.cc-go{font-size:13.5px;font-weight:500;padding:6px 12px;border-radius:999px;background:#1f2937;color:#fff;flex:none}
+.code-blk{margin:10px 0 4px;border-radius:12px;overflow:hidden;background:#0f1115;color:#e5e7eb;white-space:normal}
+.code-head{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 4px 14px;font:12px var(--font-menu);color:#9ca3af;border-bottom:1px solid #23262d}
+.code-head button{color:#d1d5db;font-size:12px;padding:4px 8px;border-radius:8px;cursor:pointer}
+.code-head button:hover{background:rgba(255,255,255,.1)}
+.code-blk pre,.pv-code{font:13px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;tab-size:2;white-space:pre}
+.code-blk pre{margin:0;padding:12px 14px;overflow:auto;max-height:420px}
 
 /* ── Composer ── */
 .card{
@@ -140,6 +162,8 @@ body{
 .send.ready:hover{filter:brightness(1.15)}
 .send:active{transform:scale(.94)}
 .send:disabled{cursor:default}
+.mode-btn[aria-pressed="true"]{background:#fbeee8;color:#C35120}
+:root[data-box="dark"] .mode-btn[aria-pressed="true"]{background:rgba(195,81,32,.22);color:#f2a27c}
 #file{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip-path:inset(50%)}
 .tools:has(#file:focus-visible) .attach{outline:2px solid var(--accent);outline-offset:2px}
 
@@ -376,6 +400,40 @@ body.booting .frame,body.booting .ud,body.booting .side,body.booting .side-toggl
 .auth.played .d7{animation-delay:.7s}.auth.played .d8{animation-delay:.8s}.auth.played .d9{animation-delay:.9s}
 @media (prefers-reduced-motion:reduce){.auth.played .ae{opacity:1;filter:none;transform:none;animation:none}}
 
+/* ── Kepler Code: preview panel (right side) ── */
+:root{--pv-w:clamp(360px,46vw,960px)}
+.pv{
+  position:fixed;z-index:25;top:0;right:0;bottom:0;width:var(--pv-w);display:flex;flex-direction:column;
+  background:var(--card);color:var(--ink);border-left:1px solid var(--line);box-shadow:-6px 0 28px rgba(0,0,0,.14);
+  font-family:var(--font-menu);
+}
+.pv-head{display:flex;align-items:center;gap:8px;padding:10px 10px 10px 14px;padding-top:max(10px,env(safe-area-inset-top));border-bottom:1px solid var(--line)}
+.pv-tabs{display:flex;background:var(--hover);border-radius:10px;padding:3px;flex:none}
+.pv-tabs button{padding:5px 12px;border-radius:8px;font-size:14px;cursor:pointer;color:var(--ink-soft)}
+.pv-tabs [aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.pv-title{flex:1;min-width:0;font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pv-actions{display:flex;align-items:center;gap:2px;flex:none}
+.pv-btn{min-width:34px;height:34px;padding:0 6px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:10px;cursor:pointer;color:var(--ink-soft);font-size:13px}
+.pv-btn:hover{background:var(--hover);color:var(--ink)}
+.pv-body{flex:1;min-height:0;position:relative;background:#fff}
+.pv-body iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff}
+.pv-code{position:absolute;inset:0;margin:0;overflow:auto;padding:16px;background:#0f1115;color:#e5e7eb}
+.pv-resize{position:absolute;left:-5px;top:0;bottom:0;width:10px;cursor:col-resize;z-index:2;touch-action:none}
+.pv-resize::after{content:"";position:absolute;left:4px;top:0;bottom:0;width:2px;background:transparent;transition:background .15s}
+.pv-resize:hover::after,.pv-resize:focus-visible::after,body.pv-drag .pv-resize::after{background:#C35120}
+.pv-resize:focus-visible{outline:none}
+body.pv-drag{cursor:col-resize;user-select:none}
+body.pv-drag iframe{pointer-events:none}
+body.pv-full .pv{width:100%;z-index:48}
+body.pv-full .pv-resize{display:none}
+@media (min-width:900px){body.pv-open .frame{padding-right:calc(var(--pv-w) + 16px)}}
+@media (max-width:899px){
+  .pv{width:100%;z-index:46}
+  .pv-resize,#pvFull{display:none}
+  .pv-btn .t{display:none}
+}
+body.booting .pv,body.signed-out .pv{visibility:hidden}
+
 /* ── Footer ── */
 .proof{flex:none;display:flex;justify-content:center;padding-top:16px}
 .by{font-family:var(--font-display);font-size:14px;color:rgba(255,255,255,.95);text-shadow:0 1px 12px rgba(0,0,0,.35)}
@@ -387,6 +445,7 @@ body.booting .frame,body.booting .ud,body.booting .side,body.booting .side-toggl
   background:rgba(0,0,0,.35);color:#fff;transition:background .15s}
 .vid-toggle:hover{background:rgba(0,0,0,.55)}
 body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
+@media (max-width:899px){.vid-toggle{bottom:auto;top:max(18px,env(safe-area-inset-top))}}
 
 /* ── Phones ── */
 @media (max-width:520px){
@@ -437,6 +496,11 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
           <button type="button" class="ibtn" id="toolsBtn" aria-haspopup="menu" aria-expanded="false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 8h9M17 8h3M4 16h3M11 16h9"/><circle cx="15" cy="8" r="2"/><circle cx="9" cy="16" r="2"/></svg>
             <span>Tools</span>
+          </button>
+
+          <button type="button" class="ibtn mode-btn" id="codeBtn" aria-pressed="false" title="Kepler Code: build websites, apps and games with a live preview">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 7-5 5 5 5M16 7l5 5-5 5"/></svg>
+            <span>Code</span>
           </button>
 
           <span class="spacer"></span>
@@ -537,6 +601,39 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   </button>
   <p class="side-label">Recent</p>
   <ul class="side-list" id="sideList"></ul>
+</aside>
+
+<aside class="pv" id="pv" aria-label="Kepler Code preview" hidden>
+  <div class="pv-resize" id="pvResize" role="separator" aria-orientation="vertical" aria-label="Resize preview" tabindex="0"></div>
+  <div class="pv-head">
+    <div class="pv-tabs" role="tablist" aria-label="Preview or code">
+      <button type="button" role="tab" id="pvTabPreview" aria-selected="true" aria-controls="pvFrame" data-tab="preview">Preview</button>
+      <button type="button" role="tab" id="pvTabCode" aria-selected="false" aria-controls="pvCode" data-tab="code">Code</button>
+    </div>
+    <span class="pv-title" id="pvTitle"></span>
+    <div class="pv-actions">
+      <button type="button" class="pv-btn" id="pvReload" aria-label="Reload preview" title="Reload preview">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+      </button>
+      <button type="button" class="pv-btn" id="pvCopy" title="Copy code">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>
+        <span class="t" id="pvCopyLabel">Copy</span>
+      </button>
+      <button type="button" class="pv-btn" id="pvDownload" aria-label="Download as HTML file" title="Download as HTML file">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+      </button>
+      <button type="button" class="pv-btn" id="pvFull" aria-label="Full screen" aria-pressed="false" title="Full screen">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+      </button>
+      <button type="button" class="pv-btn" id="pvClose" aria-label="Close preview" title="Close preview">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="pv-body">
+    <iframe id="pvFrame" title="Live preview" sandbox="allow-scripts allow-modals allow-forms allow-popups" role="tabpanel" aria-labelledby="pvTabPreview"></iframe>
+    <pre class="pv-code" id="pvCode" role="tabpanel" aria-labelledby="pvTabCode" tabindex="0" hidden><code></code></pre>
+  </div>
 </aside>
 
 <div class="ud" id="ud">
@@ -742,7 +839,8 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   async function loadUserData() {
     const [p, c] = await Promise.all([
       sb.from('profiles').select('name,status,theme').eq('id', user.id).maybeSingle(),
-      sb.from('chats').select('id,title,messages,updated_at').order('updated_at', { ascending: false }).limit(100),
+      sb.from('chats').select('id,title,messages,updated_at,mode').order('updated_at', { ascending: false }).limit(100)
+        .then(r => r.error ? sb.from('chats').select('id,title,messages,updated_at').order('updated_at', { ascending: false }).limit(100) : r),
     ]);
     profile = p.data || { name: user.user_metadata?.full_name || user.user_metadata?.user_name || '', status: 'online', theme: 'light' };
     if (!p.data) sb.from('profiles').upsert({ id: user.id, ...profile });
@@ -752,7 +850,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   }
   const saveProfile = () => user && sb.from('profiles').upsert({ id: user.id, ...profile, updated_at: new Date().toISOString() }).then(() => {});
   async function saveChat(chat) {
-    const row = { title: chat.title, messages: chat.messages, updated_at: new Date().toISOString() };
+    const row = { title: chat.title, messages: chat.messages, mode: chat.mode || 'chat', updated_at: new Date().toISOString() };
     if (chat.id) { await sb.from('chats').update(row).eq('id', chat.id); return; }
     const { data } = await sb.from('chats').insert(row).select('id').single();
     if (data) chat.id = data.id;
@@ -762,7 +860,8 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   function add(cls, text) {
     const d = document.createElement('div');
     d.className = 'msg ' + cls;
-    d.textContent = text;
+    d.dataset.who = chatMode === 'code' ? 'Kepler Code' : 'Kepler AI';
+    if (cls === 'ai') fillAi(d, text); else d.textContent = text;
     log.appendChild(d);
     log.scrollTop = log.scrollHeight;
     return d;
@@ -781,8 +880,8 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
       const li = document.createElement('li');
       const b = document.createElement('button');
       b.type = 'button';
-      b.textContent = c.title || 'New chat';
-      b.title = c.title || 'New chat';
+      b.textContent = (c.mode === 'code' ? '</> ' : '') + (c.title || 'New chat');
+      b.title = (c.mode === 'code' ? 'Kepler Code: ' : '') + (c.title || 'New chat');
       b.setAttribute('aria-current', String(c === current));
       b.onclick = () => { if (busy) return; current = c; render(); closeSide(); };
       li.appendChild(b);
@@ -803,6 +902,9 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && udMenu.hidden) closeSide(); });
 
   function render() {
+    if (current) chatMode = current.mode || 'chat';
+    paintMode();
+    closePreview();
     renderSide();
     log.innerHTML = '';
     const has = current && current.messages.length;
@@ -830,6 +932,194 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   }
   document.addEventListener('click', e => { if (!e.target.closest('.menu')) closeMenus(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenus(); });
+
+  // ── Kepler Code mode ──
+  let chatMode = safe(() => localStorage.getItem('kepler-mode'), null) === 'code' ? 'code' : 'chat';
+  const STARTERS = {
+    chat: [['Explain a topic', 'Explain this to me simply: '], ['Write a story', 'Write a short story about '], ['Plan my day', 'Help me plan my day. Here is what I need to do: ']],
+    code: [['Landing page', 'Build a landing page for '], ['Browser game', 'Make a simple browser game: '], ['Calculator', 'Build a calculator that '], ['To-do app', 'Build a to-do list app with ']],
+  };
+  const attr = t => t.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function paintMode() {
+    const code = chatMode === 'code';
+    document.body.classList.toggle('code-mode', code);
+    $('codeBtn').setAttribute('aria-pressed', String(code));
+    document.querySelector('.h1').textContent = code ? 'What should Kepler Code build?' : 'Ask anything. Kepler will answer.';
+    box.placeholder = code ? 'Describe a website, app or game to build...' : 'Ask me anything...';
+    box.setAttribute('aria-label', code ? 'Message Kepler Code' : 'Message Kepler AI');
+    $('toolsMenu').innerHTML = STARTERS[chatMode].map(([label, prompt]) =>
+      `<button type="button" role="menuitem" data-prompt="${attr(prompt)}">${attr(label)}</button>`).join('') +
+      '<button type="button" role="menuitem" data-action="new">Start a new chat</button>';
+  }
+  $('codeBtn').onclick = () => {
+    if (busy) return;
+    chatMode = chatMode === 'code' ? 'chat' : 'code';
+    safe(() => localStorage.setItem('kepler-mode', chatMode));
+    // A chat keeps the mode it started in, so switching modes mid-chat starts a new one.
+    if (current && current.messages.length && (current.mode || 'chat') !== chatMode) { current = null; render(); }
+    else paintMode();
+    box.focus();
+  };
+
+  // Replies: plain text, plus a preview card for HTML/CSS/JS and dark code blocks for anything else.
+  const WEB_HTML = ['html', 'htm', 'xhtml', 'svg', 'xml'];
+  const isHtml = b => WEB_HTML.includes(b.lang) || (!b.lang && /^\s*</.test(b.code));
+  const isWeb = b => isHtml(b) || ['css', 'js', 'javascript'].includes(b.lang);
+  function parseBlocks(text) {
+    const out = [], re = /```[ \t]*([\w#+.-]*)[^\n]*\n([\s\S]*?)(```|$)/g;
+    let last = 0, m;
+    while ((m = re.exec(text))) {
+      if (m.index > last) out.push({ type: 'text', text: text.slice(last, m.index) });
+      out.push({ type: 'code', lang: m[1].toLowerCase(), code: m[2].replace(/\n$/, ''), closed: m[3] === '```' });
+      last = re.lastIndex;
+    }
+    if (last < text.length) out.push({ type: 'text', text: text.slice(last) });
+    return out;
+  }
+  function buildDoc(blocks) {
+    const code = blocks.filter(b => b.type === 'code');
+    const htmlB = code.filter(isHtml);
+    if (!htmlB.length) return null;
+    const css = code.filter(b => b.lang === 'css').map(b => b.code).join('\n');
+    const js = code.filter(b => b.lang === 'js' || b.lang === 'javascript').map(b => b.code).join('\n');
+    let html = htmlB.map(b => b.code).join('\n');
+    if (!/<html[\s>]|<body[\s>]|<!doctype/i.test(html)) {
+      html = '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n</head>\n<body>\n' + html + '\n</body>\n</html>';
+    }
+    if (css) {
+      const s = '<style>\n' + css + '\n</style>\n', i = html.toLowerCase().indexOf('</head>');
+      html = i < 0 ? s + html : html.slice(0, i) + s + html.slice(i);
+    }
+    if (js) {
+      const s = '<script>\n' + js.replace(/<\/script/gi, '<\\/script') + '\n<\/script>\n', i = html.toLowerCase().lastIndexOf('</body>');
+      html = i < 0 ? html + s : html.slice(0, i) + s + html.slice(i);
+    }
+    const t = (html.match(/<title[^>]*>([^<]*)<\/title>/i) || [])[1];
+    const title = (t || '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim() || 'Your page';
+    return { html, title, lines: html.split('\n').length, cut: code.some(b => isWeb(b) && !b.closed) };
+  }
+  const CODE_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 7-5 5 5 5M16 7l5 5-5 5"/></svg>';
+  function copyText(text, label, done) {
+    const old = label.textContent;
+    (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
+      .then(() => { label.textContent = done || 'Copied'; }, () => { label.textContent = 'Copy failed'; })
+      .finally(() => setTimeout(() => { label.textContent = old; }, 1500));
+  }
+  function fillAi(el, text) {
+    el.textContent = '';
+    const blocks = parseBlocks(text || '');
+    const doc = buildDoc(blocks);
+    let carded = false;
+    for (const b of blocks) {
+      if (b.type === 'text') {
+        const t = b.text.replace(/^\s*\n|\n\s*$/g, '');
+        if (t.trim()) { const p = document.createElement('div'); p.className = 'msg-text'; p.textContent = t; el.appendChild(p); }
+      } else if (doc && isWeb(b)) {
+        if (carded) continue;
+        carded = true;
+        const c = document.createElement('button');
+        c.type = 'button'; c.className = 'code-card';
+        c.innerHTML = `<span class="cc-ic">${CODE_ICON}</span><span class="cc-txt"><span class="cc-title"></span><span class="cc-sub"></span></span><span class="cc-go">Preview</span>`;
+        c.querySelector('.cc-title').textContent = doc.title;
+        c.querySelector('.cc-sub').textContent = doc.lines + ' lines of code' + (doc.cut ? ' · may be cut off' : '');
+        c.setAttribute('aria-label', 'Open preview: ' + doc.title);
+        c.onclick = () => openPreview(doc, c);
+        el.appendChild(c);
+      } else {
+        const w = document.createElement('div'); w.className = 'code-blk';
+        const h = document.createElement('div'); h.className = 'code-head';
+        const l = document.createElement('span'); l.textContent = b.lang || 'code';
+        const cb = document.createElement('button'); cb.type = 'button'; cb.textContent = 'Copy';
+        cb.onclick = () => copyText(b.code, cb);
+        h.append(l, cb);
+        const pre = document.createElement('pre'), code = document.createElement('code');
+        code.textContent = b.code; pre.appendChild(code);
+        w.append(h, pre); el.appendChild(w);
+      }
+    }
+    if (!el.childNodes.length) el.textContent = text;
+    el._doc = doc;
+  }
+  // Older versions of the code are left out of what's sent to the AI, to keep requests small.
+  function payload(chat) {
+    const msgs = chat.messages.slice(-MAX_MESSAGES).map(m => ({ role: m.role, content: m.content }));
+    if (chat.mode !== 'code') return msgs;
+    let lastCode = -1;
+    msgs.forEach((m, i) => { if (m.role === 'assistant' && m.content.includes('```')) lastCode = i; });
+    return msgs.map((m, i) => m.role === 'assistant' && i !== lastCode
+      ? { ...m, content: m.content.replace(/```[\s\S]*?(```|$)/g, '[earlier version of the code, replaced by a later one]') } : m);
+  }
+
+  // Preview panel. The page runs in a sandboxed frame with no access to this site, its storage or sign-in.
+  const pv = $('pv'), pvFrame = $('pvFrame');
+  let pvDoc = null;
+  function pvTab(tab) {
+    const code = tab === 'code';
+    $('pvTabPreview').setAttribute('aria-selected', String(!code));
+    $('pvTabCode').setAttribute('aria-selected', String(code));
+    pvFrame.hidden = code; $('pvCode').hidden = !code;
+  }
+  function openPreview(doc, card) {
+    pvDoc = doc;
+    document.querySelectorAll('.code-card[aria-current]').forEach(c => c.removeAttribute('aria-current'));
+    if (card) card.setAttribute('aria-current', 'true');
+    $('pvTitle').textContent = doc.title;
+    $('pvCode').firstChild.textContent = doc.html;
+    pvFrame.srcdoc = doc.html;
+    pvTab('preview');
+    pv.hidden = false;
+    document.body.classList.add('pv-open');
+  }
+  function closePreview() {
+    if (pv.hidden) return;
+    pv.hidden = true; pvDoc = null;
+    pvFrame.removeAttribute('srcdoc');
+    document.body.classList.remove('pv-open', 'pv-full');
+    $('pvFull').setAttribute('aria-pressed', 'false');
+    document.querySelectorAll('.code-card[aria-current]').forEach(c => c.removeAttribute('aria-current'));
+  }
+  $('pvTabPreview').onclick = () => pvTab('preview');
+  $('pvTabCode').onclick = () => pvTab('code');
+  $('pvClose').onclick = closePreview;
+  $('pvReload').onclick = () => { if (!pvDoc) return; pvFrame.removeAttribute('srcdoc'); requestAnimationFrame(() => { pvFrame.srcdoc = pvDoc.html; }); pvTab('preview'); };
+  $('pvCopy').onclick = () => pvDoc && copyText(pvDoc.html, $('pvCopyLabel'));
+  $('pvDownload').onclick = () => {
+    if (!pvDoc) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([pvDoc.html], { type: 'text/html' }));
+    a.download = (pvDoc.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'kepler-code') + '.html';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+  $('pvFull').onclick = () => {
+    const on = document.body.classList.toggle('pv-full');
+    $('pvFull').setAttribute('aria-pressed', String(on));
+    $('pvFull').setAttribute('aria-label', on ? 'Exit full screen' : 'Full screen');
+  };
+  pv.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (document.body.classList.contains('pv-full')) $('pvFull').click(); else closePreview();
+  });
+  // Drag (or use the arrow keys on) the left edge to resize the panel.
+  const pvResize = $('pvResize');
+  function setPvW(px) {
+    const w = Math.round(Math.max(340, Math.min(px, innerWidth - 276 - 340)));
+    document.documentElement.style.setProperty('--pv-w', w + 'px');
+    pvResize.setAttribute('aria-valuenow', String(w));
+    return w;
+  }
+  const savedW = Number(safe(() => localStorage.getItem('kepler-pv-w'), 0));
+  if (savedW) setPvW(savedW);
+  const keepW = () => safe(() => localStorage.setItem('kepler-pv-w', String(pv.getBoundingClientRect().width | 0)));
+  pvResize.addEventListener('pointerdown', e => { e.preventDefault(); pvResize.setPointerCapture(e.pointerId); document.body.classList.add('pv-drag'); });
+  pvResize.addEventListener('pointermove', e => { if (document.body.classList.contains('pv-drag')) setPvW(innerWidth - e.clientX); });
+  pvResize.addEventListener('pointerup', () => { document.body.classList.remove('pv-drag'); keepW(); });
+  pvResize.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    setPvW(pv.getBoundingClientRect().width + (e.key === 'ArrowLeft' ? 40 : -40)); keepW();
+  });
+  paintMode();
 
   $('toolsMenu').addEventListener('click', e => {
     const item = e.target.closest('button');
@@ -924,7 +1214,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     busy = true; sendBtn.disabled = true;
     box.value = ''; sync();
     if (!current) {
-      current = { id: null, title: text.slice(0, 40), messages: [] };
+      current = { id: null, title: text.slice(0, 40), messages: [], mode: chatMode };
       chats.unshift(current);
       renderSide();
       log.innerHTML = '';
@@ -940,12 +1230,13 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + s.session.access_token },
-        body: JSON.stringify({ model, effort, messages: chat.messages.slice(-MAX_MESSAGES) }),
+        body: JSON.stringify({ model, effort, mode: chat.mode || 'chat', messages: payload(chat) }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { out.classList.add('error'); out.textContent = data.error || 'Something went wrong. Try again.'; return; }
-      out.textContent = data.reply;
+      fillAi(out, data.reply);
       chat.messages.push({ role: 'assistant', content: data.reply });
+      if (out._doc && chat === current) openPreview(out._doc, out.querySelector('.code-card'));
     } catch {
       out.classList.add('error');
       out.textContent = 'Could not reach Kepler AI. Check your connection and try again.';
@@ -1078,7 +1369,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
       current = null; render(); frame.classList.add('chatting');
       add('ai', act === 'about'
         ? "I'm Kepler AI, a friendly assistant. Ask me questions, get help with writing or homework, or just chat. I can make mistakes, so check important answers. Signed-in chats are saved to your account; guest chats stay with this browser's guest session."
-        : "Type a message in the box and press Enter to send it. Use Tools for quick starters, the paperclip to add a text file, and Chat history in this menu to go back to an old chat.");
+        : "Type a message in the box and press Enter to send it. Use Tools for quick starters, the paperclip to add a text file, and Chat history in this menu to go back to an old chat. Turn on Code to use Kepler Code: it builds websites, apps and games and shows them working in a preview on the right.");
       closeMenu(); closeSide();
     } else if (act === 'clear') {
       if (!clearArmed) { clearArmed = true; t.querySelector('.l span').textContent = 'Click again to clear'; return; }

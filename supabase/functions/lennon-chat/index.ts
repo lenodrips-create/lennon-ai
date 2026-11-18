@@ -52,8 +52,29 @@ const system = (name: string, style: string) =>
   `If someone asks what technology powers you, you can say Kepler runs on open-source AI models served by Groq. ` +
   `You are a friendly chat assistant. ${style} Reply in plain text, no markdown.`;
 
+// Kepler Code: the coding mode. The site shows any HTML it writes in a live preview panel.
+const codeSystem = (name: string) =>
+  `You are Kepler Code ${name}, the coding mode of Kepler AI, made by Lennon at Kepler Designs. ` +
+  `When anyone asks who or what you are, which model you are, or who made you, answer: "I'm Kepler Code ${name}, made by Lennon." ` +
+  `Do not call yourself ChatGPT, GPT, Llama, or any other assistant's name. ` +
+  `If someone asks what technology powers you, you can say Kepler runs on open-source AI models served by Groq.\n\n` +
+  `You build websites, web apps and browser games with HTML, CSS and JavaScript. The user sees your HTML running in a live preview next to the chat.\n\n` +
+  `When the user asks you to build or change something:\n` +
+  `1. Start with one or two short sentences saying what you built or changed.\n` +
+  `2. Then give the complete result as ONE self-contained HTML file in a single \`\`\`html code block. Put the CSS in a <style> tag and the JavaScript in a <script> tag in that same file. Give the page a <title>.\n` +
+  `3. When changing earlier work, always return the whole updated file, never a partial snippet or a diff.\n` +
+  `4. Optionally end with up to three short ideas for what to add next.\n\n` +
+  `Quality rules: modern, clean design; works at phone width; readable colours; semantic HTML; accessible buttons and labels; ` +
+  `JavaScript that runs without errors. Do not use outside images, fonts or APIs that need keys; draw graphics with CSS, inline SVG or canvas. ` +
+  `Only if a library is really needed, load it from https://cdnjs.cloudflare.com with an exact version. ` +
+  `The preview runs in a sandbox, so wrap any localStorage or sessionStorage use in try/catch and do not rely on it.\n\n` +
+  `For questions that don't need a page (explaining code, fixing a bug, other languages), answer briefly and put any code in a code block with a language tag. ` +
+  `Outside code blocks, write plain text without markdown headings, bold or tables.`;
+
 const MAX_MESSAGES = 30;
-const MAX_CHARS = 4000;
+const MAX_CHARS = 4000;          // per user message
+const MAX_REPLY_CHARS = 60000;   // per earlier assistant reply (Kepler Code replies hold whole files)
+const MAX_TOTAL_CHARS = 150000;  // whole conversation sent to Groq
 
 function cors(origin: string | null) {
   const allow = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
@@ -102,10 +123,12 @@ Deno.serve(async (req) => {
 
   let messages: { role: string; content: string }[];
   let picked = pickModel("titan-5.5");
+  let code = false;
   try {
     const body = await req.json();
     messages = body.messages;
     picked = pickModel(body.model, body.effort);
+    code = body.mode === "code";
   } catch {
     return json({ error: "Bad request." }, 400, origin);
   }
@@ -114,15 +137,18 @@ Deno.serve(async (req) => {
     !Array.isArray(messages) || messages.length === 0 || messages.length > MAX_MESSAGES ||
     !messages.every((m) =>
       (m?.role === "user" || m?.role === "assistant") &&
-      typeof m.content === "string" && m.content.length <= MAX_CHARS
-    )
+      typeof m.content === "string" && m.content.length <= (m.role === "user" ? MAX_CHARS : MAX_REPLY_CHARS)
+    ) ||
+    messages.reduce((n, m) => n + m.content.length, 0) > MAX_TOTAL_CHARS
   ) {
     return json({ error: "That chat is too long. Start a new chat." }, 400, origin);
   }
   // Forward only role and text, so a client cannot slip extra fields (tool calls, names) through to Groq.
   messages = messages.map((m) => ({ role: m.role, content: m.content }));
 
-  const sys = { role: "system", content: system(picked.name, picked.style) };
+  const sys = { role: "system", content: code ? codeSystem(picked.name) : system(picked.name, picked.style) };
+  // Whole files need room: Kepler Code gets a bigger reply budget (thinking engines count their reasoning in it).
+  const budget = (e: { effort?: string; tokens: number }) => (code ? Math.max(e.tokens, e.effort ? 16384 : 8192) : e.tokens);
   const MISSING = /model_not_found|does not exist|decommissioned|no longer supported|not found|unknown model/i;
   const groq = (payload: Record<string, unknown>) =>
     fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -164,7 +190,7 @@ Deno.serve(async (req) => {
     const k = eng.id + (eng.effort ?? "");
     if (gone.has(eng.id) || tried.has(k)) continue;
     tried.add(k);
-    const out = await attempt(eng.id, { max_tokens: eng.tokens, ...(eng.effort ? { reasoning_effort: eng.effort } : {}) });
+    const out = await attempt(eng.id, { max_tokens: budget(eng), ...(eng.effort ? { reasoning_effort: eng.effort } : {}) });
     if (out === "missing") { gone.add(eng.id); continue; }
     if (out !== "next") return out;
   }

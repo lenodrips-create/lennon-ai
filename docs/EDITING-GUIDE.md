@@ -161,13 +161,39 @@ Two changes were made:
   supabase functions deploy lennon-chat --no-verify-jwt
   ```
 
-The audit changes above are **not live yet**, so redeploy once.
+The audit changes and Kepler Code were deployed on 18 November 2026 (function version 13).
 
 **The AI's name and identity** are set in the same file. Search for `You are Kepler`. The audit report recommends rewording it so the AI doesn't claim it built itself (see the report, section 10, step 4).
 
 ---
 
-## 8. Audit report
+## 8. Kepler Code (coding mode with live preview)
+
+**What it is:** the **Code** button in the message box (next to Tools) switches to Kepler Code. It builds websites, apps and games in HTML, CSS and JavaScript. When a reply contains a page, a card appears in the chat and a **preview panel** opens on the right. The panel has:
+
+- **Preview / Code** tabs (the running page, or its source)
+- **Reload**, **Copy**, **Download** (saves an `.html` file), **Full screen** and **Close** buttons
+- a left edge you can drag (or focus and use ← →) to resize it; the width is remembered
+
+On phones the panel fills the screen. Each chat remembers which mode it started in. Code chats show `</>` in the sidebar, and switching modes in the middle of a chat starts a new one.
+
+**Safety:** previews run in a sandboxed frame (`sandbox="allow-scripts allow-modals allow-forms allow-popups"`, **without** `allow-same-origin`). Code the AI writes can't read your site, its storage or anyone's sign-in. Don't add `allow-same-origin` to that frame.
+
+**Where to edit:**
+
+| What | File | Search for |
+|---|---|---|
+| How the AI behaves in code mode (rules, style, output format) | `supabase/functions/lennon-chat/index.ts` | `const codeSystem` |
+| Reply length for code (bigger, so whole files fit) | same file | `const budget` |
+| Heading and placeholder in code mode | `index.html` | `What should Kepler Code build?` |
+| Quick-start prompts in the Tools menu | `index.html` | `const STARTERS` |
+| Card and code-block look | `index.html` | `Kepler Code: reply cards` |
+| Preview panel look, default width | `index.html` | `Kepler Code: preview panel` (`--pv-w`) |
+| Code button colours | `index.html` | `.mode-btn[aria-pressed="true"]` |
+
+After editing the function file, redeploy it (section 7). The `mode` column on the `chats` table (`chat` or `code`) stores each chat's mode.
+
+## 9. Audit report
 
 **File:** `docs/compliance-audit-2026-11-18.md`
 
@@ -181,4 +207,3 @@ This is the full list of issues, what was fixed, what's left and the score. When
 4. Add a "Delete account" option.
 5. Supabase → Authentication: minimum password 8, turn on leaked-password protection.
 6. Fill in the legal placeholders and have a lawyer review the pages.
-7. Redeploy the chat function.

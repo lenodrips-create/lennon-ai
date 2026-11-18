@@ -189,7 +189,7 @@ The audit fixed 13 code-level issues (section 11). **Score: 54 / 100** after tho
 All changes keep the existing look and features.
 
 - `index.html`: SRI on both CDN scripts; contrast fixes; keyboard-reachable file attach; inert closed drawer; `role="dialog"` on sign-in; video pause button and reduced-motion pause; 8-character password minimum; file-length check; accurate About text with an AI-mistakes note; "Clear all chats" error handling; footer typo; Privacy, Terms and Credits links in the footer and on the sign-in screen.
-- `supabase/functions/lennon-chat/index.ts`: forwards only `role` and `content` to Groq; generic public error messages. **The function must be redeployed to Supabase for these to take effect.**
+- `supabase/functions/lennon-chat/index.ts`: forwards only `role` and `content` to Groq; generic public error messages. Deployed to Supabase on 18 November 2026 (version 13, together with Kepler Code).
 - New: `privacy.html`, `terms.html`, `credits.html`, `assets/legal.css`.
 - `README.md`: documents the legal pages, redeploy step and SRI.
 
