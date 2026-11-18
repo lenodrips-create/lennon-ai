@@ -88,14 +88,14 @@ body{
 .log>:first-child{margin-top:auto}
 .chatting .h1,.chatting .proof{display:none}
 .chatting .log{display:flex}
-.chatting .hero{justify-content:flex-end;gap:16px;padding-top:calc(50vh - 60px)}
+.chatting .hero{justify-content:flex-end;gap:16px}
 .msg{
   max-width:85%;padding:12px 18px;border-radius:22px;white-space:pre-wrap;overflow-wrap:anywhere;
   font-size:16px;line-height:1.55;
 }
-.msg.user{align-self:flex-end;background:var(--ink);color:var(--on-ink);box-shadow:0 6px 24px rgba(0,0,0,.18)}
+.msg.user{align-self:flex-end;background:#fff;color:#1f2937;border:1px solid #e5e7eb;box-shadow:0 6px 24px rgba(0,0,0,.18)}
 .msg.ai{
-  align-self:flex-start;background:var(--card);color:var(--ink);border:1px solid var(--line);
+  align-self:flex-start;background:#fff;color:#1f2937;border:1px solid #e5e7eb;
   font-family:var(--font-reply);line-height:1.6;box-shadow:0 6px 24px rgba(0,0,0,.12);
 }
 .msg.ai::before{
