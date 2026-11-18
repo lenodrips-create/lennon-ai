@@ -193,7 +193,27 @@ On phones the panel fills the screen. Each chat remembers which mode it started 
 
 After editing the function file, redeploy it (section 7). The `mode` column on the `chats` table (`chat` or `code`) stores each chat's mode.
 
-## 9. Audit report
+## 9. Sidebar
+
+**Layout (top to bottom):** logo with the current mode name (Chat or Code) and the **Chat / Code switch** at the top-right; **New**, **Search** and **More**; **Recents** (click to collapse; shows 15 chats, then **Show more**); and at the bottom your **account** (opens the account menu) with the **settings gear** on the right.
+
+- **Search** filters chats by title and message text. Press Esc to close it.
+- **More** has About, Get help, What's new, Privacy, Terms and Credits.
+- **Settings (gear)** has Appearance (light or dark message box), Background video on or off, Default mode, and Account.
+- Hovering a chat shows **…** with **Rename** and **Delete** (click Delete twice to confirm).
+
+**Where to edit** (all in `index.html`):
+
+| What | Search for |
+|---|---|
+| Sidebar colours (background, text, hover) | `--s-bg:#1f1f1e` (the `--s-` values on the next lines) |
+| Width | `width:calc(260px` in the `.side{` rule, and `276px` in `.frame{padding-left` (keep that 16px bigger) |
+| Number of chats before "Show more" | `const SHOW = 15` |
+| More menu items | `$('sideMoreBtn').onclick` |
+| Settings menu items | `$('sideGear').onclick` |
+| Pop-up menu look | `.s-pop{` |
+
+## 10. Audit report
 
 **File:** `docs/compliance-audit-2026-11-18.md`
 

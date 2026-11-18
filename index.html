@@ -200,32 +200,76 @@ body{
 .menu [aria-checked="true"] .check{visibility:visible}
 .menu .mname{font-weight:500}
 
-/* ── Chats sidebar (left) ── */
+/* ── Sidebar (left): dark panel with mode switch, New / Search / More, Recents and account row ── */
 .side{
+  --s-bg:#1f1f1e;--s-ink:#ececea;--s-soft:#c3c2bc;--s-muted:#9b9a93;--s-hover:rgba(255,255,255,.06);--s-active:rgba(255,255,255,.1);--s-line:rgba(255,255,255,.08);
   position:fixed;z-index:20;left:0;top:0;bottom:0;width:calc(260px + env(safe-area-inset-left,0px));
-  display:flex;flex-direction:column;gap:10px;
-  padding:max(14px,env(safe-area-inset-top)) 12px calc(max(18px,env(safe-area-inset-bottom)) + 58px) calc(12px + env(safe-area-inset-left,0px));
-  background:var(--card);color:var(--ink);border-right:1px solid var(--line);border-radius:0;
-  box-shadow:4px 0 24px rgba(0,0,0,.10);
+  display:flex;flex-direction:column;gap:2px;
+  padding:max(12px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom)) calc(10px + env(safe-area-inset-left,0px));
+  background:var(--s-bg);color:var(--s-ink);border-right:1px solid var(--s-line);font-family:var(--font-menu);
 }
-.side-head{display:flex;align-items:center;justify-content:space-between;padding:4px 6px 0}
-.side-brand{display:flex;align-items:center;gap:10px;padding:2px 6px 6px;font-weight:600;font-size:18px}
-.side-brand img{height:25px;width:auto;display:block}
-.side-title{font-family:var(--font-display);font-weight:600;font-size:17px}
-.side-new{
-  display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border-radius:14px;cursor:pointer;
-  font-size:15px;font-weight:500;color:var(--ink);border:1px solid var(--line);transition:background .15s ease;
+.side :focus-visible{outline:2px solid #e8a07c;outline-offset:1px}
+.side-top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 2px 12px 8px}
+.side-brand{display:flex;align-items:center;gap:10px;min-width:0}
+.side-brand img{height:22px;width:auto;display:block;flex:none}
+.side-brand span{font-family:var(--font-display);font-weight:500;font-size:24px;line-height:1;letter-spacing:-.01em}
+.seg{display:flex;gap:2px;padding:3px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid var(--s-line);flex:none}
+.seg button{width:34px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:9px;color:var(--s-muted);cursor:pointer;transition:background .15s,color .15s}
+.seg button:hover{color:var(--s-ink)}
+.seg button[aria-pressed="true"]{background:rgba(255,255,255,.13);color:var(--s-ink);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.side-nav{display:flex;flex-direction:column;gap:1px}
+.s-item{
+  display:flex;align-items:center;gap:12px;width:100%;height:36px;padding:0 10px;border-radius:10px;
+  font-size:15px;color:var(--s-ink);text-align:left;cursor:pointer;transition:background .12s;
 }
-.side-new:hover{background:var(--hover)}
-.side-label{font-size:12px;font-weight:500;color:var(--muted);padding:6px 8px 0;text-transform:uppercase;letter-spacing:.06em}
-.side-list{list-style:none;flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:2px;scrollbar-width:thin}
-.side-list button{
-  width:100%;text-align:left;padding:9px 10px;border-radius:12px;font-size:14.5px;color:var(--ink-soft);cursor:pointer;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background .15s ease;
+.s-item:hover,.s-item[aria-expanded="true"]{background:var(--s-hover)}
+.s-item svg{flex:none;color:var(--s-soft)}
+.side-search{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:10px;background:rgba(255,255,255,.08)}
+.side-search svg{flex:none;color:var(--s-soft)}
+.side-search input{flex:1;min-width:0;background:transparent;outline:none;font-size:15px;color:var(--s-ink)}
+.side-search input::placeholder{color:var(--s-muted)}
+.side-label{
+  display:flex;align-items:center;gap:6px;align-self:flex-start;margin:18px 0 4px;padding:4px 10px;border-radius:8px;
+  font-size:13px;color:var(--s-muted);cursor:pointer;
 }
-.side-list button:hover{background:var(--hover);color:var(--ink)}
-.side-list button[aria-current="true"]{background:var(--hover);color:var(--ink);font-weight:500}
-.side-empty{font-size:13.5px;color:var(--muted);padding:8px 10px;line-height:1.45}
+.side-label:hover{color:var(--s-soft)}
+.side-label svg{transition:transform .15s}
+.side-label[aria-expanded="false"] svg{transform:rotate(-90deg)}
+.side-list{list-style:none;flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:1px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.18) transparent}
+.side-list li{position:relative;display:flex;align-items:center;border-radius:10px}
+.side-list li:hover{background:var(--s-hover)}
+.side-list li.on{background:var(--s-active)}
+.chat-btn{
+  flex:1;min-width:0;display:flex;align-items:center;gap:8px;text-align:left;padding:8px 10px;border-radius:10px;
+  font-size:14.5px;color:var(--s-ink);cursor:pointer;
+}
+.chat-btn .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-btn .k{flex:none;color:#e8a07c}
+.chat-dots{
+  flex:none;width:30px;height:30px;margin-right:3px;display:flex;align-items:center;justify-content:center;border-radius:8px;
+  color:var(--s-soft);cursor:pointer;opacity:0;
+}
+.side-list li:hover .chat-dots,.side-list li.on .chat-dots,.chat-dots:focus-visible,.chat-dots[aria-expanded="true"]{opacity:1}
+.chat-dots:hover{background:rgba(255,255,255,.1);color:var(--s-ink)}
+@media (hover:none){.chat-dots{opacity:1}}
+.chat-edit{flex:1;margin:2px;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,.1);outline:1px solid rgba(255,255,255,.25);font-size:14.5px;color:var(--s-ink)}
+.side-more{padding:8px 10px;font-size:14px;color:var(--s-muted);text-align:left;cursor:pointer;border-radius:10px}
+.side-more:hover{color:var(--s-ink);background:var(--s-hover)}
+.side-empty{font-size:13.5px;color:var(--s-muted);padding:8px 10px;line-height:1.45}
+.side-foot{display:flex;align-items:center;gap:4px;margin:6px -10px 0;padding:10px 10px 0;border-top:1px solid var(--s-line)}
+.s-gear{flex:none;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:10px;color:var(--s-soft);cursor:pointer}
+.s-gear:hover,.s-gear[aria-expanded="true"]{background:var(--s-hover);color:var(--s-ink)}
+/* Small light pop-up menus opened from the sidebar (More, Settings, chat options) */
+.s-pop{
+  position:fixed;z-index:60;min-width:200px;max-width:calc(100vw - 16px);padding:5px;border-radius:14px;
+  background:#2a2a28;color:#ececea;border:1px solid rgba(255,255,255,.1);box-shadow:0 16px 40px rgba(0,0,0,.35);
+  font-family:var(--font-menu);font-size:14.5px;
+}
+.s-pop button,.s-pop a{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;padding:8px 10px;border-radius:9px;text-align:left;cursor:pointer;color:inherit}
+.s-pop button:hover,.s-pop a:hover,.s-pop button:focus-visible,.s-pop a:focus-visible{background:rgba(255,255,255,.08);outline:none}
+.s-pop .v{color:#9b9a93;font-size:13.5px}
+.s-pop .danger{color:#f3907a}
+.s-pop hr{border:0;height:1px;background:rgba(255,255,255,.08);margin:4px 2px}
 @media (min-width:900px){
   .frame{padding-left:calc(env(safe-area-inset-left,0px) + 276px)}
 }
@@ -248,17 +292,21 @@ body{
     opacity:0;pointer-events:none;transition:opacity .32s ease;
   }
   body.side-open .side-scrim{opacity:1;pointer-events:auto}
-  body .ud{z-index:45;opacity:0;pointer-events:none;transform:translateX(-120px);transition:opacity .25s ease,transform .32s cubic-bezier(.4,0,.2,1)}
-  body.side-open .ud{opacity:1;pointer-events:auto;transform:none}
+  body.side-open .side-toggle{opacity:0;pointer-events:none}
   .ud-content{max-width:calc(86vw - 24px)}
   .frame{padding-top:calc(max(14px,env(safe-area-inset-top)) + 54px)}
 }
 
 /* ── User menu (bottom-left) ── */
 .ud,.ud-sub{font-family:var(--font-menu)}
-.ud{position:fixed;z-index:30;bottom:max(18px,env(safe-area-inset-bottom));left:max(18px,env(safe-area-inset-left));font-size:14px;color:#18181b}
+.ud{position:relative;flex:1;min-width:0;font-size:14px;color:#18181b}
 .ud iconify-icon{display:inline-flex;flex:none}
-.ud-trigger{display:block;border-radius:50%;cursor:pointer}
+.ud-trigger{display:flex;align-items:center;gap:10px;width:100%;height:42px;padding:0 8px;border-radius:10px;cursor:pointer;color:var(--s-ink,#18181b);text-align:left}
+.ud-trigger:hover,.ud-trigger[aria-expanded="true"]{background:var(--s-hover,#f4f4f5)}
+.ud-trigger .ud-avatar{width:30px;height:30px;font-size:12.5px;border:0;box-shadow:none}
+.ud-fname{min-width:0;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ud-fsub{flex:none;font-size:13.5px;color:var(--s-muted,#71717a)}
+.ud-trigger .chev{flex:none;color:var(--s-muted,#71717a)}
 .ud-avatar img{width:100%;height:100%;border-radius:50%;display:block;object-fit:cover}
 .ud-avatar.has-img{background:transparent;overflow:hidden}
 .ud-avatar{
@@ -466,7 +514,6 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
 @media (prefers-reduced-motion:no-preference){
   .anim .h1{animation:e-focus 1s var(--e-primary) .2s both}
   .anim .card{animation:e-panel .9s var(--e-primary) .45s both}
-  .anim .ud{animation:e-panel .9s var(--e-primary) .45s both}
   .anim .side{animation:e-panel .9s var(--e-primary) .35s both}
   .anim .by{animation:e-up .55s var(--e-soft) .9s both}
 }
@@ -593,14 +640,115 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
 </button>
 <div class="side-scrim" id="sideScrim"></div>
 <aside class="side" id="side" aria-label="Chats">
-  <div class="side-brand"><img src="brand/logo.png" alt="" width="38" height="25"><span>Kepler AI</span></div>
-  <div class="side-head"><span class="side-title">Chats</span></div>
-  <button type="button" class="side-new" id="sideNew">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-    New chat
+  <div class="side-top">
+    <div class="side-brand"><img src="brand/logo.png" alt="" width="34" height="22"><span id="sideTitle">Chat</span></div>
+    <div class="seg" role="group" aria-label="Mode">
+      <button type="button" id="segChat" aria-pressed="true" aria-label="Chat" title="Chat">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.1A8 8 0 1 1 20 12Z"/></svg>
+      </button>
+      <button type="button" id="segCode" aria-pressed="false" aria-label="Kepler Code" title="Kepler Code">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 7-5 5 5 5M16 7l5 5-5 5M13.5 5l-3 14"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <nav class="side-nav" aria-label="Chat actions">
+    <button type="button" class="s-item" id="sideNew">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      <span>New</span>
+    </button>
+    <button type="button" class="s-item" id="sideSearchBtn" aria-controls="sideSearchBox">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+      <span>Search</span>
+    </button>
+    <div class="side-search" id="sideSearchBox" hidden>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+      <input id="sideSearch" type="search" placeholder="Search chats" aria-label="Search chats" autocomplete="off">
+    </div>
+    <button type="button" class="s-item" id="sideMoreBtn" aria-haspopup="menu" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>
+      <span>More</span>
+    </button>
+  </nav>
+
+  <button type="button" class="side-label" id="recentsBtn" aria-expanded="true" aria-controls="sideList">
+    Recents
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
   </button>
-  <p class="side-label">Recent</p>
   <ul class="side-list" id="sideList"></ul>
+
+  <div class="side-foot">
+    <div class="ud" id="ud">
+      <button type="button" class="ud-trigger" id="udBtn" aria-haspopup="menu" aria-expanded="false" aria-label="Account menu">
+        <span class="ud-avatar" data-initials>Y</span>
+        <span class="ud-fname" id="udFootName">You</span><span class="ud-fsub" id="udFootSub"></span>
+        <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="ud-content" id="udMenu" role="menu" hidden>
+        <section class="ud-card">
+          <div class="ud-head">
+            <div class="ud-who">
+              <span class="ud-avatar" data-initials>Y</span>
+              <div style="min-width:0">
+                <h3 id="udName">You</h3>
+                <p id="udHandle">Signed in</p>
+              </div>
+            </div>
+            <span class="ud-badge" id="udBadge" data-s="online">online</span>
+          </div>
+          <form class="ud-edit" id="udEdit" hidden>
+            <input id="udNameInput" maxlength="40" placeholder="Your name" aria-label="Your name" autocomplete="off">
+            <button type="submit">Save</button>
+          </form>
+
+          <button type="button" class="ud-item muted" data-sub="status" aria-haspopup="menu" aria-expanded="false">
+            <span class="l"><iconify-icon class="ic" icon="solar:smile-circle-line-duotone"></iconify-icon><span>Update status</span></span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+
+          <div class="ud-sep"></div>
+          <button type="button" class="ud-item" data-act="profile">
+            <span class="l"><iconify-icon class="ic" icon="solar:user-circle-line-duotone"></iconify-icon><span>Your profile</span></span>
+          </button>
+          <button type="button" class="ud-item" data-act="appearance">
+            <span class="l"><iconify-icon class="ic" icon="solar:sun-line-duotone"></iconify-icon><span>Appearance</span></span>
+            <span class="hint" id="udTheme">Light</span>
+          </button>
+          <button type="button" class="ud-item" data-sub="history" aria-haspopup="menu" aria-expanded="false">
+            <span class="l"><iconify-icon class="ic" icon="solar:history-line-duotone"></iconify-icon><span>Chat history</span></span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+          <button type="button" class="ud-item" data-act="new">
+            <span class="l"><iconify-icon class="ic" icon="solar:pen-new-square-line-duotone"></iconify-icon><span>New chat</span></span>
+          </button>
+
+          <div class="ud-sep"></div>
+          <button type="button" class="ud-item" data-act="about">
+            <span class="l"><iconify-icon class="ic" icon="solar:star-bold" style="color:#d97706"></iconify-icon><span>About Kepler AI</span></span>
+          </button>
+          <a class="ud-item" href="https://github.com/lenodrips-create/lennon-ai/commits/main" target="_blank" rel="noopener">
+            <span class="l"><iconify-icon class="ic" icon="solar:letter-unread-line-duotone"></iconify-icon><span>What's new?</span></span>
+            <iconify-icon class="ri" icon="solar:square-top-down-line-duotone"></iconify-icon>
+          </a>
+          <button type="button" class="ud-item" data-act="help">
+            <span class="l"><iconify-icon class="ic" icon="solar:question-circle-line-duotone"></iconify-icon><span>Get help?</span></span>
+          </button>
+        </section>
+
+        <section class="ud-foot">
+          <button type="button" class="ud-item danger" data-act="clear" id="udClear">
+            <span class="l"><iconify-icon class="ic" icon="solar:trash-bin-trash-bold-duotone"></iconify-icon><span>Clear all chats</span></span>
+          </button>
+          <button type="button" class="ud-item" data-act="logout">
+            <span class="l"><iconify-icon class="ic" icon="solar:logout-2-bold-duotone"></iconify-icon><span id="udLogoutLabel">Log out</span></span>
+          </button>
+        </section>
+      </div>
+    </div>
+    <button type="button" class="s-gear" id="sideGear" aria-haspopup="menu" aria-expanded="false" aria-label="Settings" title="Settings">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
+    </button>
+  </div>
 </aside>
 
 <aside class="pv" id="pv" aria-label="Kepler Code preview" hidden>
@@ -636,71 +784,6 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   </div>
 </aside>
 
-<div class="ud" id="ud">
-  <button type="button" class="ud-trigger" id="udBtn" aria-haspopup="menu" aria-expanded="false" aria-label="Your menu">
-    <span class="ud-avatar" data-initials>Y</span>
-  </button>
-  <div class="ud-content" id="udMenu" role="menu" hidden>
-    <section class="ud-card">
-      <div class="ud-head">
-        <div class="ud-who">
-          <span class="ud-avatar" data-initials>Y</span>
-          <div style="min-width:0">
-            <h3 id="udName">You</h3>
-            <p id="udHandle">Signed in</p>
-          </div>
-        </div>
-        <span class="ud-badge" id="udBadge" data-s="online">online</span>
-      </div>
-      <form class="ud-edit" id="udEdit" hidden>
-        <input id="udNameInput" maxlength="40" placeholder="Your name" aria-label="Your name" autocomplete="off">
-        <button type="submit">Save</button>
-      </form>
-
-      <button type="button" class="ud-item muted" data-sub="status" aria-haspopup="menu" aria-expanded="false">
-        <span class="l"><iconify-icon class="ic" icon="solar:smile-circle-line-duotone"></iconify-icon><span>Update status</span></span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-      </button>
-
-      <div class="ud-sep"></div>
-      <button type="button" class="ud-item" data-act="profile">
-        <span class="l"><iconify-icon class="ic" icon="solar:user-circle-line-duotone"></iconify-icon><span>Your profile</span></span>
-      </button>
-      <button type="button" class="ud-item" data-act="appearance">
-        <span class="l"><iconify-icon class="ic" icon="solar:sun-line-duotone"></iconify-icon><span>Appearance</span></span>
-        <span class="hint" id="udTheme">Light</span>
-      </button>
-      <button type="button" class="ud-item" data-sub="history" aria-haspopup="menu" aria-expanded="false">
-        <span class="l"><iconify-icon class="ic" icon="solar:history-line-duotone"></iconify-icon><span>Chat history</span></span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-      </button>
-      <button type="button" class="ud-item" data-act="new">
-        <span class="l"><iconify-icon class="ic" icon="solar:pen-new-square-line-duotone"></iconify-icon><span>New chat</span></span>
-      </button>
-
-      <div class="ud-sep"></div>
-      <button type="button" class="ud-item" data-act="about">
-        <span class="l"><iconify-icon class="ic" icon="solar:star-bold" style="color:#d97706"></iconify-icon><span>About Kepler AI</span></span>
-      </button>
-      <a class="ud-item" href="https://github.com/lenodrips-create/lennon-ai/commits/main" target="_blank" rel="noopener">
-        <span class="l"><iconify-icon class="ic" icon="solar:letter-unread-line-duotone"></iconify-icon><span>What's new?</span></span>
-        <iconify-icon class="ri" icon="solar:square-top-down-line-duotone"></iconify-icon>
-      </a>
-      <button type="button" class="ud-item" data-act="help">
-        <span class="l"><iconify-icon class="ic" icon="solar:question-circle-line-duotone"></iconify-icon><span>Get help?</span></span>
-      </button>
-    </section>
-
-    <section class="ud-foot">
-      <button type="button" class="ud-item danger" data-act="clear" id="udClear">
-        <span class="l"><iconify-icon class="ic" icon="solar:trash-bin-trash-bold-duotone"></iconify-icon><span>Clear all chats</span></span>
-      </button>
-      <button type="button" class="ud-item" data-act="logout">
-        <span class="l"><iconify-icon class="ic" icon="solar:logout-2-bold-duotone"></iconify-icon><span id="udLogoutLabel">Log out</span></span>
-      </button>
-    </section>
-  </div>
-</div>
 
 <script>
   setTimeout(() => document.documentElement.classList.remove('anim'), 2000);
@@ -866,28 +949,181 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     log.scrollTop = log.scrollHeight;
     return d;
   }
+  // ── Sidebar: Recents list (search, show more, per-chat Rename/Delete) ──
+  const SHOW = 15;
+  let showAll = false, query = '';
+  const matches = c => !query || (c.title || '').toLowerCase().includes(query) ||
+    (c.messages || []).some(m => typeof m.content === 'string' && m.content.toLowerCase().includes(query));
   function renderSide() {
     const list = $('sideList');
     list.innerHTML = '';
-    if (!chats.length) {
+    const found = chats.filter(matches);
+    if (!found.length) {
       const li = document.createElement('li');
       li.className = 'side-empty';
-      li.textContent = 'No chats yet. Send a message to start one.';
+      li.textContent = query ? 'No chats match your search.' : 'No chats yet. Send a message to start one.';
       list.appendChild(li);
       return;
     }
-    for (const c of chats) {
+    const shown = showAll || query ? found : found.slice(0, SHOW);
+    for (const c of shown) {
       const li = document.createElement('li');
+      li.classList.toggle('on', c === current);
       const b = document.createElement('button');
-      b.type = 'button';
-      b.textContent = (c.mode === 'code' ? '</> ' : '') + (c.title || 'New chat');
+      b.type = 'button'; b.className = 'chat-btn';
       b.title = (c.mode === 'code' ? 'Kepler Code: ' : '') + (c.title || 'New chat');
       b.setAttribute('aria-current', String(c === current));
+      const t = document.createElement('span'); t.className = 't'; t.textContent = c.title || 'New chat';
+      b.appendChild(t);
+      if (c.mode === 'code') b.insertAdjacentHTML('beforeend', '<svg class="k" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-label="Code chat" role="img"><path d="m8 7-5 5 5 5M16 7l5 5-5 5"/></svg>');
       b.onclick = () => { if (busy) return; current = c; render(); closeSide(); };
-      li.appendChild(b);
+      const d = document.createElement('button');
+      d.type = 'button'; d.className = 'chat-dots';
+      d.setAttribute('aria-label', 'Options for ' + (c.title || 'New chat'));
+      d.setAttribute('aria-haspopup', 'menu'); d.setAttribute('aria-expanded', 'false');
+      d.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>';
+      d.onclick = e => { e.stopPropagation(); chatOptions(c, li, d); };
+      li.append(b, d);
       list.appendChild(li);
     }
+    if (!showAll && !query && found.length > SHOW) {
+      const li = document.createElement('li');
+      const m = document.createElement('button');
+      m.type = 'button'; m.className = 'side-more'; m.textContent = 'Show more';
+      m.onclick = () => { showAll = true; renderSide(); };
+      li.appendChild(m); list.appendChild(li);
+    }
   }
+  $('recentsBtn').onclick = () => {
+    const open = $('recentsBtn').getAttribute('aria-expanded') !== 'true';
+    $('recentsBtn').setAttribute('aria-expanded', String(open));
+    $('sideList').hidden = !open;
+  };
+  function openSearch() {
+    $('sideSearchBtn').hidden = true; $('sideSearchBox').hidden = false;
+    $('recentsBtn').setAttribute('aria-expanded', 'true'); $('sideList').hidden = false;
+    $('sideSearch').focus();
+  }
+  function closeSearch() {
+    $('sideSearch').value = ''; query = '';
+    $('sideSearchBox').hidden = true; $('sideSearchBtn').hidden = false;
+    renderSide();
+  }
+  $('sideSearchBtn').onclick = openSearch;
+  $('sideSearch').addEventListener('input', () => { query = $('sideSearch').value.trim().toLowerCase(); renderSide(); });
+  $('sideSearch').addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); closeSearch(); $('sideSearchBtn').focus(); } });
+  $('sideSearch').addEventListener('blur', () => { if (!$('sideSearch').value) closeSearch(); });
+
+  // Small pop-up menus for the sidebar (More, Settings, chat options).
+  let pop = null, popFrom = null;
+  function closePop() {
+    if (!pop) return;
+    pop.remove(); pop = null;
+    if (popFrom) { popFrom.setAttribute('aria-expanded', 'false'); popFrom = null; }
+  }
+  function openPop(from, items, place = 'right') {
+    const again = popFrom === from;
+    closePop();
+    if (again) return;
+    pop = document.createElement('div');
+    pop.className = 's-pop'; pop.setAttribute('role', 'menu');
+    for (const it of items) {
+      if (it === '-') { pop.appendChild(document.createElement('hr')); continue; }
+      const el = document.createElement(it.href ? 'a' : 'button');
+      if (it.href) { el.href = it.href; if (it.external) { el.target = '_blank'; el.rel = 'noopener'; } }
+      else el.type = 'button';
+      el.setAttribute('role', 'menuitem');
+      if (it.danger) el.className = 'danger';
+      const l = document.createElement('span'); l.textContent = it.label; el.appendChild(l);
+      if (it.value) { const v = document.createElement('span'); v.className = 'v'; v.textContent = it.value; el.appendChild(v); }
+      if (it.run) el.onclick = e => { e.stopPropagation(); it.run(el); };
+      pop.appendChild(el);
+    }
+    document.body.appendChild(pop);
+    popFrom = from; from.setAttribute('aria-expanded', 'true');
+    const r = from.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+    let left = place === 'up' ? r.left : r.right + 6, top = place === 'up' ? r.top - h - 6 : r.top;
+    if (left + w > innerWidth - 8) { left = Math.max(8, innerWidth - w - 8); top = place === 'up' ? top : r.bottom + 4; }
+    top = Math.max(8, Math.min(top, innerHeight - h - 8));
+    pop.style.left = left + 'px'; pop.style.top = top + 'px';
+    pop.querySelector('button,a')?.focus();
+  }
+  document.addEventListener('click', e => { if (pop && !pop.contains(e.target)) closePop(); });
+  document.addEventListener('keydown', e => {
+    if (!pop) return;
+    if (e.key === 'Escape') { const f = popFrom; closePop(); f?.focus(); return; }
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    e.preventDefault();
+    const items = [...pop.querySelectorAll('button,a')], i = items.indexOf(document.activeElement);
+    items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length].focus();
+  });
+
+  function chatOptions(c, li, btn) {
+    openPop(btn, [
+      { label: 'Rename', run: () => { closePop(); renameChat(c, li); } },
+      { label: 'Delete', danger: true, run: el => {
+        if (!el.dataset.sure) { el.dataset.sure = '1'; el.firstChild.textContent = 'Click again to delete'; return; }
+        closePop(); deleteChat(c);
+      } },
+    ]);
+  }
+  function renameChat(c, li) {
+    const input = document.createElement('input');
+    input.className = 'chat-edit'; input.value = c.title || ''; input.maxLength = 80;
+    input.setAttribute('aria-label', 'Chat name');
+    li.replaceChildren(input); input.focus(); input.select();
+    let done = false;
+    const finish = save => {
+      if (done) return; done = true;
+      const v = input.value.trim();
+      if (save && v && v !== c.title) { c.title = v; if (c.id) sb.from('chats').update({ title: v }).eq('id', c.id).then(() => {}); }
+      renderSide();
+    };
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') finish(true); if (e.key === 'Escape') { e.stopPropagation(); finish(false); } });
+    input.addEventListener('blur', () => finish(true));
+  }
+  async function deleteChat(c) {
+    if (busy) return;
+    if (c.id) {
+      const { error } = await sb.from('chats').delete().eq('id', c.id);
+      if (error) return;
+    }
+    chats = chats.filter(x => x !== c);
+    if (current === c) { current = null; render(); } else renderSide();
+  }
+
+  $('sideMoreBtn').onclick = e => {
+    e.stopPropagation();
+    openPop($('sideMoreBtn'), [
+      { label: 'About Kepler AI', run: () => { closePop(); showInfo('about'); } },
+      { label: 'Get help', run: () => { closePop(); showInfo('help'); } },
+      { label: "What's new", href: 'https://github.com/lenodrips-create/lennon-ai/commits/main', external: true },
+      '-',
+      { label: 'Privacy', href: 'privacy.html' },
+      { label: 'Terms', href: 'terms.html' },
+      { label: 'Credits', href: 'credits.html' },
+    ]);
+  };
+  $('sideGear').onclick = e => {
+    e.stopPropagation();
+    const vid = document.querySelector('.stage-video');
+    openPop($('sideGear'), [
+      { label: 'Appearance', value: profile.theme === 'dark' ? 'Dark' : 'Light', run: el => {
+        profile.theme = profile.theme === 'dark' ? 'light' : 'dark'; saveProfile(); paintUser();
+        el.querySelector('.v').textContent = profile.theme === 'dark' ? 'Dark' : 'Light';
+      } },
+      { label: 'Background video', value: vid.paused ? 'Off' : 'On', run: el => {
+        vid.paused ? vid.play().catch(() => {}) : vid.pause();
+        setTimeout(() => { el.querySelector('.v').textContent = vid.paused ? 'Off' : 'On'; }, 50);
+      } },
+      { label: 'Default mode', value: chatMode === 'code' ? 'Code' : 'Chat', run: el => {
+        setChatMode(chatMode === 'code' ? 'chat' : 'code');
+        el.querySelector('.v').textContent = chatMode === 'code' ? 'Code' : 'Chat';
+      } },
+      '-',
+      { label: 'Account', run: () => { closePop(); openMenu(); } },
+    ], 'up');
+  };
   $('sideNew').onclick = () => { if (busy) return; current = null; render(); closeSide(); box.focus(); };
 
   // Drawer (phones)
@@ -944,6 +1180,9 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     const code = chatMode === 'code';
     document.body.classList.toggle('code-mode', code);
     $('codeBtn').setAttribute('aria-pressed', String(code));
+    $('segChat').setAttribute('aria-pressed', String(!code));
+    $('segCode').setAttribute('aria-pressed', String(code));
+    $('sideTitle').textContent = code ? 'Code' : 'Chat';
     document.querySelector('.h1').textContent = code ? 'What should Kepler Code build?' : 'Ask anything. Kepler will answer.';
     box.placeholder = code ? 'Describe a website, app or game to build...' : 'Ask me anything...';
     box.setAttribute('aria-label', code ? 'Message Kepler Code' : 'Message Kepler AI');
@@ -951,15 +1190,17 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
       `<button type="button" role="menuitem" data-prompt="${attr(prompt)}">${attr(label)}</button>`).join('') +
       '<button type="button" role="menuitem" data-action="new">Start a new chat</button>';
   }
-  $('codeBtn').onclick = () => {
-    if (busy) return;
-    chatMode = chatMode === 'code' ? 'chat' : 'code';
+  function setChatMode(m) {
+    if (busy || m === chatMode) return;
+    chatMode = m;
     safe(() => localStorage.setItem('kepler-mode', chatMode));
     // A chat keeps the mode it started in, so switching modes mid-chat starts a new one.
     if (current && current.messages.length && (current.mode || 'chat') !== chatMode) { current = null; render(); }
     else paintMode();
-    box.focus();
-  };
+  }
+  $('codeBtn').onclick = () => { setChatMode(chatMode === 'code' ? 'chat' : 'code'); box.focus(); };
+  $('segChat').onclick = () => setChatMode('chat');
+  $('segCode').onclick = () => setChatMode('code');
 
   // Replies: plain text, plus a preview card for HTML/CSS/JS and dark code blocks for anything else.
   const WEB_HTML = ['html', 'htm', 'xhtml', 'svg', 'xml'];
@@ -1259,6 +1500,8 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     const guest = !!user?.is_anonymous;
     const name = (profile.name || '').trim() || email.split('@')[0] || (guest ? 'Guest' : 'You');
     $('udName').textContent = name;
+    $('udFootName').textContent = name;
+    $('udFootSub').textContent = guest ? '· Guest' : '';
     $('udHandle').textContent = guest ? 'Guest, not signed in' : (email || 'Signed in');
     $('udLogoutLabel').textContent = guest ? 'Sign in or create account' : 'Log out';
     const initials = name.split(/[\s._-]+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'Y';
@@ -1365,12 +1608,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     } else if (act === 'new') {
       if (busy) return; current = null; render(); closeMenu(); closeSide(); box.focus();
     } else if (act === 'about' || act === 'help') {
-      if (busy) return;
-      current = null; render(); frame.classList.add('chatting');
-      add('ai', act === 'about'
-        ? "I'm Kepler AI, a friendly assistant. Ask me questions, get help with writing or homework, or just chat. I can make mistakes, so check important answers. Signed-in chats are saved to your account; guest chats stay with this browser's guest session."
-        : "Type a message in the box and press Enter to send it. Use Tools for quick starters, the paperclip to add a text file, and Chat history in this menu to go back to an old chat. Turn on Code to use Kepler Code: it builds websites, apps and games and shows them working in a preview on the right.");
-      closeMenu(); closeSide();
+      showInfo(act);
     } else if (act === 'clear') {
       if (!clearArmed) { clearArmed = true; t.querySelector('.l span').textContent = 'Click again to clear'; return; }
       const { error } = await sb.from('chats').delete().eq('user_id', user.id);
@@ -1381,6 +1619,14 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
       await sb.auth.signOut();
     }
   });
+  function showInfo(act) {
+    if (busy) return;
+    current = null; render(); frame.classList.add('chatting');
+    add('ai', act === 'about'
+        ? "I'm Kepler AI, a friendly assistant. Ask me questions, get help with writing or homework, or just chat. I can make mistakes, so check important answers. Signed-in chats are saved to your account; guest chats stay with this browser's guest session."
+        : "Type a message in the box and press Enter to send it. Use Tools for quick starters and the paperclip to add a text file. Your chats are listed under Recents on the left; use Search to find one. Switch to Code (top of the sidebar, or the Code button) to use Kepler Code: it builds websites, apps and games and shows them working in a preview on the right.");
+      closeMenu(); closeSide();
+  }
   $('udEdit').addEventListener('submit', e => {
     e.preventDefault();
     profile.name = $('udNameInput').value.trim().slice(0, 40); saveProfile(); paintUser();
