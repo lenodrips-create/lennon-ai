@@ -11,6 +11,8 @@ Only `https://lenodrips-create.github.io` (and `localhost:8000` for testing) may
 
 ## Legal pages
 
+**How to edit everything added in the audit:** see [`docs/EDITING-GUIDE.md`](docs/EDITING-GUIDE.md).
+
 `privacy.html`, `terms.html` and `credits.html` are **drafts**. Fill in every highlighted `[placeholder]` and have them reviewed by a lawyer before launch. See `docs/compliance-audit-2026-11-18.md` for the full audit.
 
 ## Updating
