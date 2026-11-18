@@ -9,8 +9,8 @@
 <link rel="apple-touch-icon" href="brand/apple-touch-icon.png">
 <meta name="description" content="Kepler AI is a simple, friendly AI you can chat with.">
 <link rel="preload" href="fonts/IBMPlexSerif-Regular.woff2" as="font" type="font/woff2" crossorigin>
-<script src="https://cdn.jsdelivr.net/npm/iconify-icon@2.1.0/dist/iconify-icon.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/iconify-icon@2.1.0/dist/iconify-icon.min.js" integrity="sha384-GPb5RlngihS9H0z1D137JsvzmeZ7tCpWEF4t5YDoTZyMsPP8S7h7vFDh4XhheU83" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
 <script>document.documentElement.classList.add('anim')</script>
 <style>
 @font-face{font-family:"Ubuntu";src:url("fonts/Ubuntu-Regular.woff2") format("woff2");font-weight:400;font-display:swap}
@@ -39,7 +39,7 @@ a{color:inherit;text-decoration:none}
   --line:#e5e7eb;
   --ink:#1f2937;
   --ink-soft:#374151;
-  --muted:#9ca3af;
+  --muted:#6b7280;
   --idle:#e5e7eb;
   --accent:#E88654;
   --hover:#f3f4f6;
@@ -100,7 +100,7 @@ body{
 }
 .msg.ai::before{
   content:"Kepler AI";display:block;margin-bottom:2px;
-  font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--accent);
+  font-family:var(--font-display);font-size:13px;font-weight:600;color:#c2410c;
 }
 .msg.error{color:#b45309}
 
@@ -140,7 +140,8 @@ body{
 .send.ready:hover{filter:brightness(1.15)}
 .send:active{transform:scale(.94)}
 .send:disabled{cursor:default}
-#file{display:none}
+#file{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip-path:inset(50%)}
+.tools:has(#file:focus-visible) .attach{outline:2px solid var(--accent);outline-offset:2px}
 
 /* Popover menus (Tools, model) */
 .menu{
@@ -342,7 +343,7 @@ body.booting .frame,body.booting .ud,body.booting .side,body.booting .side-toggl
 .custom-checkbox:checked::after{
   content:"";position:absolute;left:5px;top:1px;width:5px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);
 }
-.vlink{color:#a78bfa;transition:color .15s}
+.vlink{color:#7c3aed;transition:color .15s}
 .vlink:hover{text-decoration:underline}
 .auth-submit{
   width:100%;border-radius:16px;background:#18181b;padding:16px 0;font-weight:500;color:#fafafa;cursor:pointer;
@@ -378,6 +379,14 @@ body.booting .frame,body.booting .ud,body.booting .side,body.booting .side-toggl
 /* ── Footer ── */
 .proof{flex:none;display:flex;justify-content:center;padding-top:16px}
 .by{font-family:var(--font-display);font-size:14px;color:rgba(255,255,255,.95);text-shadow:0 1px 12px rgba(0,0,0,.35)}
+.legal{display:flex;justify-content:center;gap:14px;margin-top:6px;font-size:13px}
+.legal a{color:#fff;text-shadow:0 1px 10px rgba(0,0,0,.55);text-decoration:underline;text-underline-offset:2px}
+.proof{flex-direction:column;align-items:center}
+.vid-toggle{position:fixed;z-index:15;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));
+  width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;
+  background:rgba(0,0,0,.35);color:#fff;transition:background .15s}
+.vid-toggle:hover{background:rgba(0,0,0,.55)}
+body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
 
 /* ── Phones ── */
 @media (max-width:520px){
@@ -455,12 +464,18 @@ body.booting .frame,body.booting .ud,body.booting .side,body.booting .side-toggl
     </main>
 
     <footer class="proof">
-      <p class="by">Your friendly AI, powered by Groq. Built my lennon, Kepler Designs</p>
+      <p class="by">Your friendly AI, powered by Groq. Built by Lennon, Kepler Designs</p>
+      <nav class="legal" aria-label="Legal"><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="credits.html">Credits</a></nav>
     </footer>
   </div>
 </div>
 
-<div class="auth" id="auth" hidden>
+<button type="button" class="vid-toggle" id="vidToggle" aria-label="Pause background video" aria-pressed="false">
+  <svg id="vidPause" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+  <svg id="vidPlay" hidden width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg>
+</button>
+
+<div class="auth" id="auth" role="dialog" aria-modal="true" aria-labelledby="authTitle" hidden>
   <section class="auth-col">
     <div class="auth-inner">
       <img class="ae d1 auth-logo" src="brand/logo.png" alt="Kepler AI" width="73" height="48">
@@ -504,6 +519,7 @@ body.booting .frame,body.booting .ud,body.booting .side,body.booting .side-toggl
 
       <p class="ae d9 auth-foot" id="authFoot"><span id="authFootText">New to our platform? </span><a href="#" class="vlink" id="authFootLink" data-to="signup">Create Account</a></p>
       <button type="button" class="ae d9 auth-skip" id="authSkip">Skip for now</button>
+      <p class="ae d9 auth-foot auth-legal"><a href="privacy.html" class="vlink">Privacy</a> · <a href="terms.html" class="vlink">Terms</a></p>
     </div>
   </section>
 </div>
@@ -695,7 +711,7 @@ body.booting .frame,body.booting .ud,body.booting .side,body.booting .side-toggl
     const email = $('authEmail').value.trim(), password = $('authPass').value;
     const btn = $('authSubmit');
     if (mode !== 'newpass' && !email) return say('Enter your email address.');
-    if (MODES[mode].pass && password.length < 6) return say('Use a password with at least 6 characters.');
+    if (MODES[mode].pass && password.length < 8) return say('Use a password with at least 8 characters.');
     btn.disabled = true; say('');
     try {
       if (mode === 'signin') {
@@ -895,8 +911,8 @@ body.booting .frame,body.booting .ud,body.booting .side,body.booting .side-toggl
     const f = e.target.files[0];
     e.target.value = '';
     if (!f) return;
-    if (f.size > 12000) { frame.classList.add('chatting'); add('ai error', 'That file is too big. Attach a text file under 12 KB.'); return; }
-    const text = await f.text();
+    const text = f.size > 12000 ? null : await f.text();
+    if (text === null || box.value.length + text.length + f.name.length + 12 > 4000) { frame.classList.add('chatting'); add('ai error', 'That file is too long. Messages can be up to 4,000 characters, including attached files.'); return; }
     box.value = (box.value ? box.value + '\n\n' : '') + `Here is ${f.name}:\n${text}`;
     sync(); box.focus();
   };
@@ -1061,12 +1077,13 @@ body.booting .frame,body.booting .ud,body.booting .side,body.booting .side-toggl
       if (busy) return;
       current = null; render(); frame.classList.add('chatting');
       add('ai', act === 'about'
-        ? "I'm Kepler AI, a friendly assistant. Ask me questions, get help with writing or homework, or just chat. Your chats are saved to your account."
+        ? "I'm Kepler AI, a friendly assistant. Ask me questions, get help with writing or homework, or just chat. I can make mistakes, so check important answers. Signed-in chats are saved to your account; guest chats stay with this browser's guest session."
         : "Type a message in the box and press Enter to send it. Use Tools for quick starters, the paperclip to add a text file, and Chat history in this menu to go back to an old chat.");
       closeMenu(); closeSide();
     } else if (act === 'clear') {
       if (!clearArmed) { clearArmed = true; t.querySelector('.l span').textContent = 'Click again to clear'; return; }
-      await sb.from('chats').delete().eq('user_id', user.id);
+      const { error } = await sb.from('chats').delete().eq('user_id', user.id);
+      if (error) { t.querySelector('.l span').textContent = 'Could not clear. Try again'; clearArmed = false; return; }
       chats = []; current = null; render(); clearArmed = false; resetClear(); closeMenu();
     } else if (act === 'logout') {
       closeMenu();
@@ -1078,6 +1095,26 @@ body.booting .frame,body.booting .ud,body.booting .side,body.booting .side-toggl
     profile.name = $('udNameInput').value.trim().slice(0, 40); saveProfile(); paintUser();
     $('udEdit').hidden = true;
   });
+
+  // ── Background video: pause button, and start paused for people who prefer reduced motion ──
+  const vid = document.querySelector('.stage-video');
+  function paintVid() {
+    const paused = vid.paused;
+    $('vidPause').toggleAttribute('hidden', paused); $('vidPlay').toggleAttribute('hidden', !paused);
+    $('vidToggle').setAttribute('aria-label', paused ? 'Play background video' : 'Pause background video');
+    $('vidToggle').setAttribute('aria-pressed', String(paused));
+  }
+  $('vidToggle').onclick = () => { vid.paused ? vid.play().catch(() => {}) : vid.pause(); };
+  vid.addEventListener('play', paintVid); vid.addEventListener('pause', paintVid);
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { vid.removeAttribute('autoplay'); vid.pause(); }
+  paintVid();
+
+  // ── Phones: keep the closed chats drawer out of the keyboard and screen-reader order ──
+  const narrow = matchMedia('(max-width: 899px)');
+  const paintDrawer = () => { $('side').inert = narrow.matches && !document.body.classList.contains('side-open'); };
+  narrow.addEventListener('change', paintDrawer);
+  new MutationObserver(paintDrawer).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  paintDrawer();
 
   // ── Session ──
   let lastUserId = null;

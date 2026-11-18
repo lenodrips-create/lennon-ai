@@ -95,7 +95,10 @@ Deno.serve(async (req) => {
   const key = ["GROQ_API_KEY", "lennon api", "LENNON_API", "lennon_api", "LENNON API"]
     .map((n) => Deno.env.get(n)?.trim())
     .find(Boolean);
-  if (!key) return json({ error: "Kepler AI is not set up yet: the Groq key is missing." }, 500, origin);
+  if (!key) {
+    console.error("GROQ_API_KEY secret is missing");
+    return json({ error: "Kepler AI is not available right now. Try again later." }, 500, origin);
+  }
 
   let messages: { role: string; content: string }[];
   let picked = pickModel("titan-5.5");
@@ -116,6 +119,8 @@ Deno.serve(async (req) => {
   ) {
     return json({ error: "That chat is too long. Start a new chat." }, 400, origin);
   }
+  // Forward only role and text, so a client cannot slip extra fields (tool calls, names) through to Groq.
+  messages = messages.map((m) => ({ role: m.role, content: m.content }));
 
   const sys = { role: "system", content: system(picked.name, picked.style) };
   const MISSING = /model_not_found|does not exist|decommissioned|no longer supported|not found|unknown model/i;
@@ -141,7 +146,10 @@ Deno.serve(async (req) => {
       }
       const text = await res.text();
       console.error(`groq ${id} ${res.status}: ${text.slice(0, 400)}`);
-      if (res.status === 401) return json({ error: "The Groq key was rejected. Check the GROQ_API_KEY secret." }, 502, origin);
+      if (res.status === 401) {
+        console.error("Groq rejected the key: check the GROQ_API_KEY secret");
+        return json({ error: "Kepler AI is not available right now. Try again later." }, 502, origin);
+      }
       if (res.status === 429) return json({ error: "Too many messages. Wait a moment and try again." }, 429, origin);
       if ((res.status === 404 || res.status === 400) && MISSING.test(text)) return "missing";
       if (res.status >= 500) return "next";

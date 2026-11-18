@@ -1,0 +1,24 @@
+@font-face{font-family:"IBM Plex Serif";src:url("../fonts/IBMPlexSerif-Regular.woff2") format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"IBM Plex Serif";src:url("../fonts/IBMPlexSerif-SemiBold.woff2") format("woff2");font-weight:600;font-display:swap}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:#fff;color:#1f2937;font-family:"IBM Plex Serif",Georgia,serif;font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased}
+main{max-width:720px;margin:0 auto;padding:40px 16px 72px}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:28px;color:#1f2937;text-decoration:none;font-weight:600;font-size:18px}
+.top img{height:25px;width:auto}
+h1{font-size:clamp(30px,5vw,40px);font-weight:600;line-height:1.15;margin:0 0 8px}
+h2{font-size:22px;font-weight:600;margin:36px 0 8px}
+h3{font-size:18px;font-weight:600;margin:24px 0 4px}
+p,ul,table{margin:0 0 14px}
+ul{padding-left:22px}
+li{margin-bottom:6px}
+a{color:#1d4ed8}
+:focus-visible{outline:2px solid #c2410c;outline-offset:3px;border-radius:4px}
+.meta{color:#4b5563;font-size:15px}
+.draft{background:#fef3c7;border:1px solid #f59e0b;color:#78350f;border-radius:12px;padding:12px 16px;font-size:15px;margin:16px 0 24px}
+.todo{background:#fef3c7;color:#78350f;padding:0 4px;border-radius:4px}
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;vertical-align:top;border-bottom:1px solid #e5e7eb;padding:8px 10px 8px 0}
+th{font-weight:600}
+footer{margin-top:48px;font-size:15px;color:#4b5563}
