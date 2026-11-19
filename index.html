@@ -1767,9 +1767,33 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
       .then(() => { label.textContent = done || 'Copied'; }, () => { label.textContent = 'Copy failed'; })
       .finally(() => setTimeout(() => { label.textContent = old; }, 1500));
   }
-  function genImage(prompt) {
+  // Pictures in replies. The AI is asked for [[image: description]], but it sometimes writes an <img> tag,
+  // a markdown image or a bare Pollinations link instead: all of these become a picture, never raw text.
+  const POLL = /^https:\/\/image\.pollinations\.ai\/prompt\/[^\s"'<>]+$/i;
+  const PIC_RE = /\[\[image:\s*([^\]]+?)\s*\]\]|<img\b[^>]*?\bsrc\s*=\s*["']([^"']+)["'][^>]*>|!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)|(https:\/\/image\.pollinations\.ai\/prompt\/[^\s"'<>)\]]+)/gi;
+  const picPrompt = url => { try { return decodeURIComponent(new URL(url).pathname.replace(/^\/prompt\//, '')).replace(/\+/g, ' '); } catch { return 'Generated picture'; } };
+  function picParts(text) {
+    const out = []; let last = 0, m;
+    PIC_RE.lastIndex = 0;
+    while ((m = PIC_RE.exec(text))) {
+      let pic = null;
+      if (m[1]) pic = { prompt: m[1] };
+      else {
+        const url = (m[2] || m[4] || m[5] || '').replace(/&amp;/g, '&');
+        const alt = m[2] ? ((m[0].match(/\balt\s*=\s*["']([^"']*)["']/i) || [])[1] || '') : (m[3] || '');
+        if (POLL.test(url)) pic = { url, prompt: (alt || picPrompt(url)).replace(/&amp;/g, '&').replace(/&quot;/g, '"') };
+      }
+      if (!pic) continue;
+      if (m.index > last) out.push(text.slice(last, m.index));
+      out.push(pic); last = PIC_RE.lastIndex;
+    }
+    if (last < text.length) out.push(text.slice(last));
+    return out;
+  }
+  const onlyPics = code => { const ps = picParts(code); return ps.some(x => typeof x === 'object') && ps.every(x => typeof x === 'object' || !x.replace(/<\/?(p|div|figure|figcaption|br)[^>]*>/gi, '').trim()); };
+  function genImage(prompt, given) {
     let seed = 0; for (const ch of prompt) seed = (seed * 31 + ch.charCodeAt(0)) % 1000000;
-    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt.slice(0, 600))}?width=1024&height=1024&nologo=true&seed=${seed}`;
+    const url = given || `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt.slice(0, 600))}?width=1024&height=1024&nologo=true&seed=${seed}`;
     const fig = document.createElement('figure'); fig.className = 'gen-img';
     const img = document.createElement('img'); img.alt = prompt; img.loading = 'lazy'; img.decoding = 'async'; img.referrerPolicy = 'no-referrer'; img.src = url;
     const cap = document.createElement('figcaption'), d = document.createElement('span'), a = document.createElement('a');
@@ -1780,7 +1804,8 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   }
   function fillAi(el, text) {
     el.textContent = '';
-    const blocks = parseBlocks(text || '');
+    // A code block holding nothing but picture tags is shown as the pictures, not as code or a preview.
+    const blocks = parseBlocks(text || '').map(b => b.type === 'code' && onlyPics(b.code) ? { type: 'text', text: b.code } : b);
     const doc = buildDoc(blocks);
     let carded = false;
     for (const b of blocks) {
@@ -1788,8 +1813,8 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
         const t = b.text.replace(/^\s*\n|\n\s*$/g, '');
         if (t.trim()) {
           // Lines like [[image: a red fox at dusk]] become pictures (made by Pollinations from the description).
-          t.split(/\[\[image:\s*([^\]]+?)\s*\]\]/i).forEach((part, k) => {
-            if (k % 2) { el.appendChild(genImage(part)); return; }
+          picParts(t).forEach(part => {
+            if (typeof part === 'object') { el.appendChild(genImage(part.prompt, part.url)); return; }
             const tx = part.replace(/^\s*\n|\n\s*$/g, '');
             if (tx.trim()) { const p = document.createElement('div'); p.className = 'msg-text'; p.textContent = tx; el.appendChild(p); }
           });
