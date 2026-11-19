@@ -316,7 +316,9 @@ body{
 .term-page[hidden]{display:none}
 .term-out{flex:1;min-height:0;overflow-y:auto;white-space:pre-wrap;word-break:break-word;padding-bottom:12px;scrollbar-width:thin;scrollbar-color:#444 transparent}
 .term-out .p{color:#4ade80}.term-out .err{color:#f87171}.term-out .dir{color:#60a5fa}.term-out .dim{color:#a3a3a3}
-.term-video{display:block;width:100%;max-width:720px;max-height:60vh;margin:6px 0;background:#000;border:1px solid #333}
+.term-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;z-index:0}
+.term-page.playing .term-out{visibility:hidden}
+.term-page .term-form{position:relative;z-index:1}
 .term-form{display:flex;gap:8px;flex:none}
 .term-input{flex:1;min-width:0;height:48px;padding:0 14px;border-radius:0;border:1px solid #fff;background:#000;color:#fff;font:inherit;font-size:15px;caret-color:#fff}
 .term-input:focus{outline:none;box-shadow:0 0 0 1px #fff}
@@ -1401,12 +1403,11 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
       tvideo = document.createElement('video');
       Object.assign(tvideo, { src: 'assets/game.mp4', loop: true, autoplay: true, playsInline: true, controls: false });
       tvideo.className = 'term-video';
-      termOut.appendChild(tvideo); termOut.scrollTop = termOut.scrollHeight;
+      $('termPage').prepend(tvideo); $('termPage').classList.add('playing');
       tvideo.play().catch(() => { tvideo.muted = true; tvideo.play().catch(() => {}); });
-      tvideo.addEventListener('loadedmetadata', () => { termOut.scrollTop = termOut.scrollHeight; });
       return 'Playing game. Type "stop" to stop.';
     },
-    stop: () => { if (!tvideo) throw 'stop: nothing is playing'; tvideo.pause(); tvideo.removeAttribute('src'); tvideo.load(); tvideo.remove(); tvideo = null; return 'Stopped.'; },
+    stop: () => { if (!tvideo) throw 'stop: nothing is playing'; tvideo.pause(); tvideo.removeAttribute('src'); tvideo.load(); tvideo.remove(); tvideo = null; $('termPage').classList.remove('playing'); return 'Stopped.'; },
   };
   function tfile(x, cmd) { if (!x) throw cmd + ': missing file operand'; const n = tget(tresolve(x)); if (!n) throw cmd + ': ' + x + ': No such file or directory'; if (n.t === 'd') throw cmd + ': ' + x + ': Is a directory'; return n; }
   function tslice(a, cmd) { let k = 10, i = a.indexOf('-n'); if (i >= 0) { k = parseInt(a[i + 1], 10) || 10; a = a.filter((_, j) => j !== i && j !== i + 1); }
