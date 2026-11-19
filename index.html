@@ -316,7 +316,7 @@ body{
 .term-page[hidden]{display:none}
 .term-out{flex:1;min-height:0;overflow-y:auto;white-space:pre-wrap;word-break:break-word;padding-bottom:12px;scrollbar-width:thin;scrollbar-color:#444 transparent}
 .term-out .p{color:#4ade80}.term-out .err{color:#f87171}.term-out .dir{color:#60a5fa}.term-out .dim{color:#a3a3a3}
-.term-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;z-index:0}
+.term-video{position:absolute;left:0;right:0;top:0;bottom:calc(max(16px,env(safe-area-inset-bottom)) + 60px);width:100%;height:calc(100% - max(16px,env(safe-area-inset-bottom)) - 60px);object-fit:contain;background:#000;z-index:0}
 .term-page.playing .term-out{visibility:hidden}
 .term-input::placeholder{color:#737373}
 .term-send:disabled{opacity:.5;cursor:default}
@@ -1327,7 +1327,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   }
   function playLearning() {
     lvideo = document.createElement('video');
-    Object.assign(lvideo, { src: 'assets/learning.mp4', loop: true, autoplay: true, playsInline: true, muted: true });
+    Object.assign(lvideo, { src: 'assets/learning.mp4', loop: true, autoplay: true, playsInline: true, muted: true, preload: 'auto', disablePictureInPicture: true });
     lvideo.className = 'term-video';
     $('termPage').prepend(lvideo); $('termPage').classList.add('playing');
     lvideo.play().catch(() => {});
