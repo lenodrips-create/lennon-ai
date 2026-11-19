@@ -204,6 +204,23 @@ body{
 #file{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip-path:inset(50%)}
 .tools:has(#file:focus-visible) .attach{outline:2px solid var(--accent);outline-offset:2px}
 
+/* Kepler Code: the / button opens saved skills */
+.slash-btn{display:none;font:600 18px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;width:34px;justify-content:center;padding:0}
+body.code-mode .slash-btn{display:inline-flex}
+.menu-skills{left:12px;width:min(360px,calc(100vw - 40px))}
+.menu-skills .sk-name{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:500}
+.menu-skills .sub{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-skills .sk-txt{min-width:0;display:block}
+.menu-skills .sk-empty{padding:10px 12px;font-size:14px;color:var(--muted)}
+.menu-skills button.on{background:var(--hover)}
+/* Pictures Kepler creates in replies */
+.gen-img{margin:8px 0 0;max-width:min(440px,100%)}
+.gen-img img{display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:14px;background:var(--hover)}
+.gen-img figcaption{display:flex;gap:10px;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-top:6px}
+.gen-img figcaption span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.gen-img a{color:inherit;flex:none}
+.gen-img.failed img{display:none}
+
 /* Popover menus (Tools, model) */
 .menu{
   position:absolute;bottom:52px;z-index:5;min-width:240px;
@@ -345,6 +362,18 @@ body{
 .term-page.playing .term-out{visibility:hidden}
 .term-input::placeholder{color:#737373}
 .term-send:disabled{opacity:.5;cursor:default}
+.term-attach{flex:none;width:48px;height:48px;display:flex;align-items:center;justify-content:center;border:1px solid #fff;color:#fff;cursor:pointer;background:#000}
+.term-attach:hover{background:#171717}
+.term-form:has(#termFile:focus-visible) .term-attach{outline:2px solid #4ade80;outline-offset:2px}
+.term-form:has(#termFile:disabled) .term-attach{opacity:.5;cursor:default}
+#termFile{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip-path:inset(50%)}
+.term-chip{display:flex;align-items:center;gap:10px;align-self:flex-start;margin-bottom:8px;padding:6px 8px 6px 6px;border:1px solid #404040;background:#0a0a0a;position:relative;z-index:1;max-width:100%}
+.term-chip[hidden]{display:none}
+.term-chip img{width:40px;height:40px;object-fit:cover;display:block}
+.term-chip span{color:#d4d4d4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.term-chip button{flex:none;color:#a3a3a3;font:inherit;border:1px solid #404040;padding:0 8px;cursor:pointer;background:none}
+.term-chip button:hover{color:#fff;border-color:#fff}
+.lh-img{display:block;width:100%;max-height:120px;object-fit:contain;background:#0a0a0a;border:1px solid #1f1f1f}
 .term-skill{display:flex;align-items:baseline;gap:12px;margin-top:10px}
 .term-skill b{font-weight:600}
 .term-forget{margin-left:auto;flex:none;color:#a3a3a3;font:inherit;font-size:12px;border:1px solid #404040;padding:1px 8px;cursor:pointer;background:none}
@@ -634,6 +663,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 8h9M17 8h3M4 16h3M11 16h9"/><circle cx="15" cy="8" r="2"/><circle cx="9" cy="16" r="2"/></svg>
             <span>Tools</span>
           </button>
+          <button type="button" class="ibtn slash-btn" id="skillsBtn" aria-haspopup="menu" aria-expanded="false" aria-label="Use a saved skill" title="Use a saved skill">/</button>
 
 
           <span class="spacer"></span>
@@ -655,6 +685,8 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
           <button type="button" role="menuitem" data-prompt="Help me plan my day. Here is what I need to do: ">Plan my day</button>
           <button type="button" role="menuitem" data-action="new">Start a new chat</button>
         </div>
+
+        <div class="menu menu-skills" id="skillsMenu" role="menu" aria-label="Saved skills" hidden></div>
 
         <div class="menu menu-model" id="modelMenu" role="menu" hidden>
         </div>
@@ -728,7 +760,12 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
 <div class="side-scrim" id="sideScrim"></div>
 <div class="term-page" id="termPage" hidden aria-label="Learning environment">
   <div class="term-out" id="termOut" role="log" aria-live="polite"></div>
+  <div class="term-chip" id="termChip" hidden><img alt="" id="termChipImg"><span id="termChipName"></span><button type="button" id="termChipX" aria-label="Remove image">Remove</button></div>
   <form class="term-form" id="termForm" autocomplete="off">
+    <label class="term-attach" for="termFile" title="Attach an image" aria-label="Attach an image">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><circle cx="9" cy="10" r="1.8"/><path d="m20.5 16-5-5-8.5 8.5"/></svg>
+    </label>
+    <input type="file" id="termFile" accept="image/png,image/jpeg,image/webp,image/gif">
     <input class="term-input" id="termInput" type="text" maxlength="300" placeholder="Teach Kepler a new skill..." aria-label="Skill for Kepler to learn" autocomplete="off" autocapitalize="off" spellcheck="false">
     <button type="submit" class="term-send" id="termSend">Send</button>
   </form>
@@ -1033,7 +1070,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     if (!p.data) sb.from('profiles').upsert({ id: user.id, ...profile });
     chats = c.data || [];
     current = null;
-    loadUsage();
+    loadUsage(); loadSkills().catch(() => {});
     paintUser(); render(); sync();
   }
   const saveProfile = () => user && sb.from('profiles').upsert({ id: user.id, ...profile, updated_at: new Date().toISOString() }).then(() => {});
@@ -1270,7 +1307,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   box.addEventListener('input', sync);
 
   // Composer menus
-  const menus = [[$('toolsBtn'), $('toolsMenu')], [$('modelBtn'), $('modelMenu')]];
+  const menus = [[$('toolsBtn'), $('toolsMenu')], [$('skillsBtn'), $('skillsMenu')], [$('modelBtn'), $('modelMenu')]];
   function closeMenus() { for (const [b, m] of menus) { m.hidden = true; b.setAttribute('aria-expanded', 'false'); } }
   for (const [b, m] of menus) {
     b.addEventListener('click', e => {
@@ -1326,25 +1363,55 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   $('segTerm').onclick = () => { setTerm(true); setTimeout(() => $('termInput').focus(), 0); };
 
   // ── Learning environment: Kepler studies a skill, writes itself a guide, and uses it in later chats ──
-  // Skills are kept in this browser. While Kepler is learning, the learning video plays over the page.
-  const SKILLS_KEY = 'kepler-skills', SKILL_NOTES_MAX = 1500, SKILLS_MAX = 12;
+  // Skills are saved to the account (Supabase table "skills"). While Kepler is learning, the learning video plays.
+  const SKILLS_KEY = 'kepler-skills', SKILL_NOTES_MAX = 1500, SKILLS_MAX = 30;
   const termOut = $('termOut'), termIn = $('termInput');
-  let skills = safe(() => JSON.parse(localStorage.getItem(SKILLS_KEY)), null);
-  if (!Array.isArray(skills)) skills = [];
-  let learning = false, lvideo = null;
-  const saveSkills = () => safe(() => localStorage.setItem(SKILLS_KEY, JSON.stringify(skills)));
+  let skills = [];
+  let learning = false, lvideo = null, termImage = null;
+  async function loadSkills() {
+    const { data, error } = await sb.from('skills').select('id,name,notes,created_at').order('created_at');
+    if (error) return;
+    skills = data || [];
+    // Skills learned before they were saved to accounts lived in this browser: move them over once.
+    const old = safe(() => JSON.parse(localStorage.getItem(SKILLS_KEY)), null);
+    if (Array.isArray(old) && old.length) {
+      const have = new Set(skills.map(x => x.name.toLowerCase()));
+      const rows = old.filter(x => x && x.name && x.notes && !have.has(String(x.name).toLowerCase()))
+        .map(x => ({ name: String(x.name).slice(0, 60), notes: String(x.notes).slice(0, SKILL_NOTES_MAX) }));
+      if (rows.length) { const r = await sb.from('skills').insert(rows).select('id,name,notes,created_at'); if (!r.error) skills.push(...r.data); }
+      if (!rows.length || skills.length) safe(() => localStorage.removeItem(SKILLS_KEY));
+    }
+    skillsChanged();
+  }
+  async function storeSkill(name, notes) {
+    const same = skills.find(x => x.name.toLowerCase() === name.toLowerCase());
+    const r = same
+      ? await sb.from('skills').update({ name, notes }).eq('id', same.id).select('id,name,notes,created_at').single()
+      : await sb.from('skills').insert({ name, notes }).select('id,name,notes,created_at').single();
+    if (r.error) throw new Error('Kepler learned it but could not save the skill. Try again.');
+    skills = skills.filter(x => x.id !== r.data.id).concat(r.data);
+    skillsChanged();
+  }
+  async function forgetSkill(sk) {
+    const { error } = await sb.from('skills').delete().eq('id', sk.id);
+    if (error) { tline('Could not forget that skill. Try again.', 'err'); return; }
+    skills = skills.filter(x => x.id !== sk.id);
+    skillsChanged(); paintSkills();
+  }
+  function skillsChanged() { paintSkillMenu(); if (!$('termPage').hidden && !learning) paintSkills(); }
   function tline(text, cls) { const d = document.createElement('div'); if (cls) d.className = cls; d.textContent = text; termOut.appendChild(d); termOut.scrollTop = termOut.scrollHeight; return d; }
   function paintSkills() {
     termOut.innerHTML = '';
     tline('Kepler Learning Environment', 'p');
-    tline('Describe a skill and press Send. Kepler studies it, writes itself a guide, and uses that skill in your chats from then on.', 'dim');
+    tline('Describe a skill and press Send, or attach an image for Kepler to learn from. Kepler studies it, writes itself a guide, and saves the skill to your account.', 'dim');
+    tline('Use a skill in Kepler Code by typing / and its name, or with the / button next to Tools.', 'dim');
     tline(skills.length ? `\nLearned skills (${skills.length}):` : '\nNo skills learned yet.', 'dim');
     skills.forEach((sk, i) => {
       const row = document.createElement('div'); row.className = 'term-skill';
       const b = document.createElement('b'); b.textContent = '✓ ' + sk.name;
       const f = document.createElement('button'); f.type = 'button'; f.className = 'term-forget'; f.textContent = 'Forget';
       f.setAttribute('aria-label', 'Forget ' + sk.name);
-      f.onclick = () => { if (learning) return; skills.splice(i, 1); saveSkills(); paintSkills(); };
+      f.onclick = () => { if (!learning) forgetSkill(sk); };
       row.append(b, f); termOut.appendChild(row);
       const n = document.createElement('div'); n.className = 'term-notes'; n.textContent = sk.notes; termOut.appendChild(n);
     });
@@ -1356,7 +1423,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     const stage = document.createElement('div'); stage.className = 'learn-stage'; stage.setAttribute('aria-hidden', 'true');
     stage.innerHTML = `
       <div class="lh-side">
-        <div class="lh-box"><div class="lh-t">Skill <b>acquiring</b></div><div class="lh-name"></div><div class="lh-kv"><span>elapsed</span><span data-k="t">T+00.00</span><span>session</span><span>${Math.random().toString(16).slice(2, 10)}</span></div></div>
+        <div class="lh-box"><div class="lh-t">Skill <b>acquiring</b></div>${termImage ? '<img class="lh-img" alt="">' : ''}<div class="lh-name"></div><div class="lh-kv"><span>elapsed</span><span data-k="t">T+00.00</span><span>session</span><span>${Math.random().toString(16).slice(2, 10)}</span></div></div>
         <div class="lh-box"><div class="lh-t">Progress <span data-k="phase">sense</span></div><div class="lh-big" data-k="pct">0.0%</div><div class="lh-bar"><i data-k="bar" style="width:0"></i></div></div>
         <div class="lh-box"><div class="lh-t">Loss <span data-k="loss">2.400</span></div><canvas class="lh-cv" data-c="loss"></canvas></div>
         <div class="lh-box"><div class="lh-t">Memory <span>write</span></div><canvas class="lh-cv tall" data-c="grid"></canvas></div>
@@ -1370,6 +1437,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
         <div class="lh-box grow"><div class="lh-t">Event stream</div><div class="lh-log" data-k="ev"></div></div>
       </div>`;
     stage.querySelector('.lh-name').textContent = topic;
+    if (termImage) stage.querySelector('.lh-img').src = termImage.url;
     $('termPage').prepend(stage); $('termPage').classList.add('playing');
     lvideo = stage.querySelector('video'); lvideo.muted = true; lvideo.play().catch(() => {});
     const q = k => stage.querySelector(`[data-k="${k}"]`), cv = k => stage.querySelector(`[data-c="${k}"]`);
@@ -1436,13 +1504,14 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     $('termPage').classList.remove('playing');
   }
   async function learn() {
-    const topic = termIn.value.trim();
-    if (!topic || learning) return;
+    const typed = termIn.value.trim(), img = termImage;
+    if ((!typed && !img) || learning) return;
+    const topic = typed || 'what this image shows';
     if (!user) { tline('Sign in first so Kepler can learn.', 'err'); return; }
     if (outOfMessages()) { showLimit(); return; }
-    if (skills.length >= SKILLS_MAX) { tline(`Kepler can hold ${SKILLS_MAX} skills. Forget one to learn another.`, 'err'); return; }
-    learning = true; termIn.value = ''; termIn.disabled = true; $('termSend').disabled = true; termIn.placeholder = 'Kepler is learning...';
-    tline('\n> ' + topic);
+    if (skills.length >= SKILLS_MAX && !skills.some(x => x.name.toLowerCase() === typed.toLowerCase())) { tline(`Kepler can hold ${SKILLS_MAX} skills. Forget one to learn another.`, 'err'); return; }
+    learning = true; termIn.value = ''; termIn.disabled = true; $('termSend').disabled = true; $('termFile').disabled = true; $('termChip').hidden = true; termIn.placeholder = 'Kepler is learning...';
+    tline('\n> ' + (img ? `[image: ${img.name}] ` : '') + typed);
     playLearning(topic);
     const started = Date.now();
     let msg = '', ok = false;
@@ -1452,8 +1521,12 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + s.session.access_token },
-        body: JSON.stringify({ model, effort, mode: 'chat', messages: [{ role: 'user', content:
-          `You are learning a new skill so you can use it later in conversations. The skill: "${topic}".\n` +
+        body: JSON.stringify({ model, effort, mode: 'chat', ...(img ? { image: img.url } : {}), messages: [{ role: 'user', content:
+          (img
+            ? `You are learning a new skill from the attached image so you can use it later.${typed ? ` The user says: "${typed}".` : ''} Study the image closely first.\n` +
+              `If it shows a visual style (art, photo, design, UI), describe that style precisely (colours, shapes, layout, lighting, mood, textures) so you can recreate it in [[image: ...]] pictures and in web pages. ` +
+              `If it shows text, a diagram, a method or an example, learn the method it teaches.\n`
+            : `You are learning a new skill so you can use it later in conversations. The skill: "${topic}".\n`) +
           `Write the guide you will follow whenever this skill is useful. Line 1 must be exactly "SKILL: " followed by a short name for the skill (2 to 5 words). ` +
           `Then, in plain text with no markdown headings, cover when to use it, the key steps or rules, and common mistakes to avoid. Keep the whole reply under 1200 characters.` }] }),
       });
@@ -1465,8 +1538,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
       const name = ((m && m[1]) || topic).replace(/[*_#`]/g, '').trim().slice(0, 60);
       const notes = (m ? reply.replace(m[0], '') : reply).replace(/^#+\s*/gm, '').replace(/\*\*/g, '').replace(/```/g, '').trim().slice(0, SKILL_NOTES_MAX);
       if (!notes) throw new Error('Kepler could not learn that. Try describing the skill differently.');
-      skills = skills.filter(x => x.name.toLowerCase() !== name.toLowerCase());
-      skills.push({ name, notes, at: Date.now() }); saveSkills();
+      await storeSkill(name, notes);
       msg = `Learned: ${name}`; ok = true;
     } catch (e) {
       msg = (e && e.message && !/fetch/i.test(e.message)) ? e.message : 'Could not reach Kepler AI. Check your connection and try again.';
@@ -1476,12 +1548,123 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     if (wait > 0) await new Promise(r => setTimeout(r, wait));
     if (hud) { hud.finish(ok); await new Promise(r => setTimeout(r, 900)); }
     stopLearning();
-    learning = false; termIn.disabled = false; $('termSend').disabled = false; termIn.placeholder = 'Teach Kepler a new skill...';
+    learning = false; termIn.disabled = false; $('termSend').disabled = false; $('termFile').disabled = false; setTermImage(ok ? null : img); termIn.placeholder = 'Teach Kepler a new skill...';
     paintSkills();
     tline('\n' + msg, ok ? 'p' : 'err');
     termIn.focus();
   }
   $('termForm').onsubmit = e => { e.preventDefault(); learn(); };
+
+  // Images for Kepler to learn from: shrunk in the browser to a JPEG Groq accepts (well under 4 MB).
+  function setTermImage(img) {
+    termImage = img;
+    $('termChip').hidden = !img;
+    if (img) { $('termChipImg').src = img.url; $('termChipName').textContent = img.name; }
+  }
+  function readImage(file) {
+    return new Promise((resolve, reject) => {
+      if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type)) return reject(new Error('Use a PNG, JPEG, WebP or GIF image.'));
+      if (file.size > 20e6) return reject(new Error('That image is too big. Use one under 20 MB.'));
+      const src = URL.createObjectURL(file), im = new Image();
+      im.onload = () => {
+        let q = 0.9, side = 1600, url = '';
+        for (let i = 0; i < 5; i++) {
+          const k = Math.min(1, side / Math.max(im.naturalWidth, im.naturalHeight));
+          const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(im.naturalWidth * k)); c.height = Math.max(1, Math.round(im.naturalHeight * k));
+          const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height);
+          url = c.toDataURL('image/jpeg', q);
+          if (url.length < 3.5e6) break;
+          side *= 0.75; q -= 0.1;
+        }
+        URL.revokeObjectURL(src);
+        resolve({ url, name: file.name || 'pasted image' });
+      };
+      im.onerror = () => { URL.revokeObjectURL(src); reject(new Error('That image could not be opened.')); };
+      im.src = src;
+    });
+  }
+  async function takeImage(file) {
+    if (!file || learning) return;
+    try { setTermImage(await readImage(file)); termIn.focus(); }
+    catch (e) { tline(e.message, 'err'); }
+  }
+  $('termFile').onchange = e => { const f = e.target.files[0]; e.target.value = ''; takeImage(f); };
+  $('termChipX').onclick = () => { setTermImage(null); termIn.focus(); };
+  termIn.addEventListener('paste', e => { const f = [...(e.clipboardData?.files || [])].find(f => f.type.startsWith('image/')); if (f) { e.preventDefault(); takeImage(f); } });
+  $('termPage').addEventListener('dragover', e => { if ([...e.dataTransfer.items].some(i => i.kind === 'file')) e.preventDefault(); });
+  $('termPage').addEventListener('drop', e => { const f = [...e.dataTransfer.files].find(f => f.type.startsWith('image/')); if (f) { e.preventDefault(); takeImage(f); } });
+
+  // ── Saved skills in Kepler Code: "/skill name" uses a skill (names can have spaces) ──
+  const skillsMenu = $('skillsMenu');
+  let slashTyped = false;
+  function matchSkill(text) {
+    if (!text.startsWith('/')) return null;
+    const t = text.slice(1).toLowerCase();
+    let best = null;
+    for (const sk of skills) {
+      const n = sk.name.toLowerCase();
+      if ((t === n || t.startsWith(n + ' ') || t.startsWith(n + '\n')) && (!best || n.length > best.name.length)) best = sk;
+    }
+    return best ? { skill: best, rest: text.slice(1 + best.name.length).trim() } : null;
+  }
+  function paintSkillMenu(filter) {
+    const f = (filter || '').toLowerCase();
+    const list = skills.filter(sk => !f || sk.name.toLowerCase().startsWith(f) || sk.name.toLowerCase().includes(' ' + f));
+    skillsMenu.innerHTML = '';
+    const head = document.createElement('div'); head.className = 'mm-group'; head.textContent = 'Saved skills';
+    skillsMenu.appendChild(head);
+    if (!list.length) {
+      const e = document.createElement('div'); e.className = 'sk-empty';
+      e.textContent = skills.length ? 'No saved skill matches.' : 'No saved skills yet. Teach Kepler one in Learn.';
+      skillsMenu.appendChild(e);
+      if (!skills.length) {
+        const go = document.createElement('button'); go.type = 'button'; go.setAttribute('role', 'menuitem'); go.textContent = 'Open Learn';
+        go.onclick = () => { closeMenus(); $('segTerm').click(); };
+        skillsMenu.appendChild(go);
+      }
+      return list;
+    }
+    const scroll = document.createElement('div'); scroll.className = 'mm-scroll';
+    list.forEach((sk, i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitem');
+      if (i === 0 && f) b.className = 'on';
+      b.innerHTML = '<span class="sk-txt"><span class="sk-name"></span><span class="sub"></span></span>';
+      b.querySelector('.sk-name').textContent = '/' + sk.name;
+      b.querySelector('.sub').textContent = sk.notes.split('\n').find(l => l.trim()) || '';
+      b.onclick = () => useSkill(sk);
+      scroll.appendChild(b);
+    });
+    skillsMenu.appendChild(scroll);
+    return list;
+  }
+  function useSkill(sk) {
+    closeMenus(); slashTyped = false;
+    const m = matchSkill(box.value), rest = m ? m.rest : box.value.replace(/^\/\S*\s?/, '');
+    box.value = '/' + sk.name + ' ' + rest;
+    sync(); box.focus(); box.setSelectionRange(box.value.length, box.value.length);
+  }
+  function openSkillMenu(filter) {
+    const list = paintSkillMenu(filter);
+    closeMenus(); closeMenu();
+    if (filter && !list.length) return;
+    skillsMenu.hidden = false; $('skillsBtn').setAttribute('aria-expanded', 'true');
+  }
+  $('skillsBtn').addEventListener('pointerdown', () => { slashTyped = false; paintSkillMenu(); });
+  $('skillsBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { slashTyped = false; paintSkillMenu(); } });
+  // Typing "/" at the start of a Kepler Code message opens the list, filtered as you type.
+  box.addEventListener('input', () => {
+    if (chatMode !== 'code') return;
+    const v = box.value, m = matchSkill(v);
+    if (/^\/[^\n]*$/.test(v) && !(m && v.length > m.skill.name.length + 1)) { slashTyped = true; openSkillMenu(v.slice(1)); }
+    else if (slashTyped) { slashTyped = false; closeMenus(); }
+  });
+  box.addEventListener('keydown', e => {
+    if (!slashTyped || skillsMenu.hidden) return;
+    const first = skillsMenu.querySelector('.mm-scroll button');
+    if ((e.key === 'Enter' || e.key === 'Tab') && !e.shiftKey && first) {
+      e.preventDefault(); e.stopImmediatePropagation(); first.click();
+    } else if (e.key === 'Escape') { slashTyped = false; closeMenus(); }
+  }, true);
 
   // Replies: plain text, plus a preview card for HTML/CSS/JS and dark code blocks for anything else.
   const WEB_HTML = ['html', 'htm', 'xhtml', 'svg', 'xml'];
@@ -1527,6 +1710,17 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
       .then(() => { label.textContent = done || 'Copied'; }, () => { label.textContent = 'Copy failed'; })
       .finally(() => setTimeout(() => { label.textContent = old; }, 1500));
   }
+  function genImage(prompt) {
+    let seed = 0; for (const ch of prompt) seed = (seed * 31 + ch.charCodeAt(0)) % 1000000;
+    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt.slice(0, 600))}?width=1024&height=1024&nologo=true&seed=${seed}`;
+    const fig = document.createElement('figure'); fig.className = 'gen-img';
+    const img = document.createElement('img'); img.alt = prompt; img.loading = 'lazy'; img.decoding = 'async'; img.referrerPolicy = 'no-referrer'; img.src = url;
+    const cap = document.createElement('figcaption'), d = document.createElement('span'), a = document.createElement('a');
+    d.textContent = prompt; a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = 'Open';
+    img.onerror = () => { fig.classList.add('failed'); d.textContent = 'The picture could not load: ' + prompt; };
+    cap.append(d, a); fig.append(img, cap);
+    return fig;
+  }
   function fillAi(el, text) {
     el.textContent = '';
     const blocks = parseBlocks(text || '');
@@ -1535,7 +1729,14 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     for (const b of blocks) {
       if (b.type === 'text') {
         const t = b.text.replace(/^\s*\n|\n\s*$/g, '');
-        if (t.trim()) { const p = document.createElement('div'); p.className = 'msg-text'; p.textContent = t; el.appendChild(p); }
+        if (t.trim()) {
+          // Lines like [[image: a red fox at dusk]] become pictures (made by Pollinations from the description).
+          t.split(/\[\[image:\s*([^\]]+?)\s*\]\]/i).forEach((part, k) => {
+            if (k % 2) { el.appendChild(genImage(part)); return; }
+            const tx = part.replace(/^\s*\n|\n\s*$/g, '');
+            if (tx.trim()) { const p = document.createElement('div'); p.className = 'msg-text'; p.textContent = tx; el.appendChild(p); }
+          });
+        }
       } else if (doc && isWeb(b)) {
         if (carded) continue;
         carded = true;
@@ -1564,11 +1765,20 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   }
   // Older versions of the code are left out of what's sent to the AI, to keep requests small.
   // Skills learned in the Learning environment go first, as an earlier answer Kepler gave about what it knows.
+  // A message that starts with "/skill name" asks for that skill by name.
   function withSkills(msgs) {
+    msgs = msgs.map(m => {
+      if (m.role !== 'user') return m;
+      const hit = matchSkill(m.content);
+      return hit ? { ...m, content: `[Use my learned skill "${hit.skill.name}" for this request.]\n${hit.rest || 'Apply the skill.'}` } : m;
+    });
     if (!skills.length) return msgs;
-    const text = 'Skills I have learned. I use them whenever they fit the request:\n\n' +
-      skills.map(sk => `SKILL: ${sk.name}\n${sk.notes}`).join('\n\n');
-    return [{ role: 'user', content: 'Which skills have you learned?' }, { role: 'assistant', content: text }, ...msgs.slice(-(MAX_MESSAGES - 2))];
+    const total = skills.reduce((n, sk) => n + sk.notes.length, 0);
+    const used = new Set(msgs.filter(m => m.role === 'user').map(m => (m.content.match(/^\[Use my learned skill "(.+?)"/) || [])[1]).filter(Boolean));
+    const full = sk => total < 12000 || used.has(sk.name);
+    const text = 'Skills I have learned. I use them whenever they fit the request, and always when asked for one by name:\n\n' +
+      skills.map(sk => full(sk) ? `SKILL: ${sk.name}\n${sk.notes}` : `SKILL: ${sk.name} (${sk.notes.split('\n')[0].slice(0, 120)})`).join('\n\n');
+    return [{ role: 'user', content: 'Which skills have you learned?' }, { role: 'assistant', content: text.slice(0, 55000) }, ...msgs.slice(-(MAX_MESSAGES - 2))];
   }
   function payload(chat) {
     const msgs = withSkills(chat.messages.slice(-MAX_MESSAGES).map(m => ({ role: m.role, content: m.content })));
@@ -2169,7 +2379,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     if (mode === 'newpass' && !auth.hidden && session) return;
     user = session?.user || null;
     if (!user) {
-      lastUserId = null; chats = []; current = null; render();
+      lastUserId = null; chats = []; current = null; skills = []; skillsChanged(); render();
       showAuth('signin');
       return;
     }

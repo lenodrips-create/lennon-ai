@@ -50,7 +50,10 @@ const system = (name: string, style: string) =>
   `When anyone asks who or what you are, which model you are, or who made you, answer: "I'm Kepler ${name}, made by Lennon." ` +
   `Do not call yourself ChatGPT, GPT, Llama, or any other assistant's name. ` +
   `If someone asks what technology powers you, you can say Kepler runs on open-source AI models served by Groq. ` +
-  `You are a friendly chat assistant. ${style} Reply in plain text, no markdown.`;
+  `You are a friendly chat assistant. ${style} Reply in plain text, no markdown. ` +
+  `You can create images: put a line on its own that reads [[image: a detailed visual description]] and the site shows that picture in its place. ` +
+  `Use it whenever the user asks you to draw, make, generate, design or show a picture, and you may add a short sentence about it. Never say you cannot create images. ` +
+  `When the user shares an image, look at it carefully and use what you see.`;
 
 // Kepler Code: the coding mode. The site shows any HTML it writes in a live preview panel.
 const codeSystem = (name: string) =>
@@ -65,7 +68,11 @@ const codeSystem = (name: string) =>
   `3. When changing earlier work, always return the whole updated file, never a partial snippet or a diff.\n` +
   `4. Optionally end with up to three short ideas for what to add next.\n\n` +
   `Quality rules: modern, clean design; works at phone width; readable colours; semantic HTML; accessible buttons and labels; ` +
-  `JavaScript that runs without errors. Do not use outside images, fonts or APIs that need keys; draw graphics with CSS, inline SVG or canvas. ` +
+  `JavaScript that runs without errors. For photos or illustrations in a page, use generated images: ` +
+  `<img src="https://image.pollinations.ai/prompt/URL-ENCODED%20DESCRIPTION?width=1024&height=768&nologo=true" alt="...">, choosing width and height to fit the layout. ` +
+  `Do not use any other outside images, and no fonts or APIs that need keys; draw icons and simple graphics with CSS, inline SVG or canvas. ` +
+  `Outside code blocks you can also show the user a picture with a line that reads [[image: a detailed visual description]]. ` +
+  `When the user shares an image (a screenshot, sketch or design), look at it carefully and use what you see. ` +
   `Only if a library is really needed, load it from https://cdnjs.cloudflare.com with an exact version. ` +
   `The preview runs in a sandbox, so wrap any localStorage or sessionStorage use in try/catch and do not rely on it.\n\n` +
   `For questions that don't need a page (explaining code, fixing a bug, other languages), answer briefly and put any code in a code block with a language tag. ` +
@@ -78,6 +85,13 @@ const MAX_MESSAGES = 30;
 const MAX_CHARS = 4000;          // per user message
 const MAX_REPLY_CHARS = 60000;   // per earlier assistant reply (Kepler Code replies hold whole files)
 const MAX_TOTAL_CHARS = 150000;  // whole conversation sent to Groq
+const MAX_IMAGE_CHARS = 5_400_000; // one image per request, as a base64 data URL (Groq allows up to 4 MB)
+const IMAGE_RE = /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/;
+// Engines that can see images. Used instead of the normal chain when a message carries a picture.
+const VISION: Engine[] = [
+  { id: "meta-llama/llama-4-maverick-17b-128e-instruct", tokens: 4096 },
+  { id: "meta-llama/llama-4-scout-17b-16e-instruct", tokens: 4096 },
+];
 
 function cors(origin: string | null) {
   const allow = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
@@ -128,11 +142,18 @@ Deno.serve(async (req) => {
   let messages: { role: string; content: string }[];
   let picked = pickModel("titan-5.5");
   let code = false;
+  let image: string | null = null;
   try {
     const body = await req.json();
     messages = body.messages;
     picked = pickModel(body.model, body.effort);
     code = body.mode === "code";
+    if (body.image != null) {
+      if (typeof body.image !== "string" || body.image.length > MAX_IMAGE_CHARS || !IMAGE_RE.test(body.image)) {
+        return json({ error: "That image can't be used. Try a PNG, JPEG, WebP or GIF under 4 MB." }, 400, origin);
+      }
+      image = body.image;
+    }
   } catch {
     return json({ error: "Bad request." }, 400, origin);
   }
@@ -149,6 +170,7 @@ Deno.serve(async (req) => {
   }
   // Forward only role and text, so a client cannot slip extra fields (tool calls, names) through to Groq.
   messages = messages.map((m) => ({ role: m.role, content: m.content }));
+  if (image && messages[messages.length - 1].role !== "user") return json({ error: "Bad request." }, 400, origin);
 
   // Daily limit: take one message now (atomically, as the user), give it back if no reply comes.
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -186,11 +208,18 @@ Deno.serve(async (req) => {
     // Whole files need room: Kepler Code gets a bigger reply budget (thinking engines count their reasoning in it).
     const budget = (e: { effort?: string; tokens: number }) => (code ? Math.max(e.tokens, e.effort ? 16384 : 8192) : e.tokens);
     const MISSING = /model_not_found|does not exist|decommissioned|no longer supported|not found|unknown model/i;
+    // With an image, the last user message carries it alongside its text.
+    const sent: unknown[] = image
+      ? [...messages.slice(0, -1), { role: "user", content: [
+          { type: "text", text: messages[messages.length - 1].content },
+          { type: "image_url", image_url: { url: image } },
+        ] }]
+      : messages;
     const groq = (payload: Record<string, unknown>) =>
       fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ ...payload, messages: [sys, ...messages] }),
+        body: JSON.stringify({ ...payload, messages: [sys, ...sent] }),
       });
 
     // Try one engine: first with its tuned settings, then (if Groq refuses a setting) with plain ones.
@@ -222,7 +251,7 @@ Deno.serve(async (req) => {
 
     const tried = new Set<string>();
     const gone = new Set<string>();
-    for (const eng of picked.chain) {
+    for (const eng of image ? VISION : picked.chain) {
       const k = eng.id + (eng.effort ?? "");
       if (gone.has(eng.id) || tried.has(k)) continue;
       tried.add(k);
@@ -237,6 +266,7 @@ Deno.serve(async (req) => {
       if (list.ok) {
         const ids: string[] = ((await list.json())?.data ?? []).map((m: { id: string }) => m.id)
           .filter((id: string) => !/whisper|tts|guard|playai|orpheus|prompt-guard|compound/i.test(id) && !gone.has(id));
+        if (image) ids.splice(0, ids.length, ...ids.filter((id) => /llama-4|vision/i.test(id)));
         const prefer = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
         ids.sort((a, b) => (prefer.indexOf(a) + 1 || 99) - (prefer.indexOf(b) + 1 || 99));
         for (const id of ids.slice(0, 4)) {
