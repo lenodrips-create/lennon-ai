@@ -312,6 +312,14 @@ body{
 /* Terminal page: a plain black screen beside the sidebar. */
 .term-page{position:fixed;inset:0;z-index:19;background:#000}
 .term-page[hidden]{display:none}
+.term-input{position:absolute;left:16px;right:16px;bottom:max(16px,env(safe-area-inset-bottom));height:48px;padding:0 14px;
+  border-radius:0;border:1px solid #fff;background:#000;color:#fff;font:15px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;caret-color:#fff}
+.term-input:focus{outline:none;box-shadow:0 0 0 1px #fff}
+/* In Term mode the sidebar goes black with white text. */
+body.term-mode .side{--s-bg:#000;--s-ink:#fff;--s-soft:#e5e5e5;--s-muted:#a3a3a3;--s-hover:rgba(255,255,255,.08);--s-active:rgba(255,255,255,.14);--s-line:rgba(255,255,255,.14)}
+body.term-mode .seg{background:rgba(255,255,255,.06)}
+body.term-mode .seg button[aria-pressed="true"]{background:#262626;color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+body.term-mode .side-search{background:#111}
 @media (min-width:900px){.term-page{left:calc(260px + env(safe-area-inset-left,0px))}}
 /* Phones and narrow windows: the chats panel becomes a slide-out drawer, opened with the ☰ button. */
 .side-toggle,.side-scrim{display:none}
@@ -676,7 +684,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
 </button>
 <div class="side-scrim" id="sideScrim"></div>
-<div class="term-page" id="termPage" hidden></div>
+<div class="term-page" id="termPage" hidden><input class="term-input" id="termInput" type="text" aria-label="Terminal input" autocomplete="off" spellcheck="false"></div>
 <aside class="side" id="side" aria-label="Chats">
   <div class="side-top">
     <div class="side-brand"><img src="brand/logo.png" alt="" width="34" height="22"><span id="sideTitle">Chat</span></div>
@@ -687,7 +695,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
       <button type="button" id="segCode" aria-pressed="false" aria-label="Kepler Code" title="Kepler Code">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 7-5 5 5 5M16 7l5 5-5 5M13.5 5l-3 14"/></svg>
       </button>
-      <button type="button" id="segTerm" aria-pressed="false" aria-label="Terminal" title="Terminal">
+      <button type="button" id="segTerm" aria-pressed="false" aria-label="Term" title="Term">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="m7 10 3 2.5L7 15M12.5 15H17"/></svg>
       </button>
     </div>
@@ -1261,7 +1269,8 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   function setTerm(on) {
     $('termPage').hidden = !on;
     $('segTerm').setAttribute('aria-pressed', String(on));
-    if (on) { $('segChat').setAttribute('aria-pressed', 'false'); $('segCode').setAttribute('aria-pressed', 'false'); $('sideTitle').textContent = 'Terminal'; }
+    document.body.classList.toggle('term-mode', on);
+    if (on) { $('segChat').setAttribute('aria-pressed', 'false'); $('segCode').setAttribute('aria-pressed', 'false'); $('sideTitle').textContent = 'Term'; }
     else paintMode();
   }
   $('segChat').onclick = () => { setTerm(false); setChatMode('chat'); };
