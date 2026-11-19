@@ -82,6 +82,9 @@ const codeSystem = (name: string) =>
 
 // Free messages per account per day (UTC). The website shows the same number: keep DAILY_LIMIT in index.html in step.
 const DAILY_LIMIT = 10;
+// Testing switch: false turns the daily limit off (no counting, no blocking). Set back to true to limit again,
+// and set LIMIT_ON in index.html to match.
+const LIMIT_ON = false;
 
 const MAX_MESSAGES = 30;
 const MAX_CHARS = 4000;          // per user message
@@ -183,19 +186,23 @@ Deno.serve(async (req) => {
       headers: { apikey, Authorization: `Bearer ${bearer}`, "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-  const took = await rpc("kepler_take_message", { p_limit: DAILY_LIMIT }, token, publicKey);
-  if (!took.ok) {
-    console.error(`usage take failed ${took.status}: ${(await took.text()).slice(0, 200)}`);
-    return json({ error: "Kepler AI is not available right now. Try again later." }, 500, origin);
+  let remaining: number | null = null;
+  if (LIMIT_ON) {
+    const took = await rpc("kepler_take_message", { p_limit: DAILY_LIMIT }, token, publicKey);
+    if (!took.ok) {
+      console.error(`usage take failed ${took.status}: ${(await took.text()).slice(0, 200)}`);
+      return json({ error: "Kepler AI is not available right now. Try again later." }, 500, origin);
+    }
+    remaining = Number(await took.json());
   }
-  const remaining = Number(await took.json());
-  if (remaining < 0) {
+  if (remaining !== null && remaining < 0) {
     return json({
       error: `You've used all ${DAILY_LIMIT} of today's free messages. Buy credit to keep chatting, or come back tomorrow.`,
       code: "limit", limit: DAILY_LIMIT, remaining: 0,
     }, 429, origin);
   }
   const refund = async () => {
+    if (!LIMIT_ON) return;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!serviceKey || !uid) { console.error("usage refund skipped: no service key or user id"); return; }
     const r = await rpc("kepler_refund_message", { p_user: uid }, serviceKey, serviceKey).catch(() => null);
