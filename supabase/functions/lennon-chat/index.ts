@@ -266,10 +266,19 @@ Deno.serve(async (req) => {
       if (list.ok) {
         const ids: string[] = ((await list.json())?.data ?? []).map((m: { id: string }) => m.id)
           .filter((id: string) => !/whisper|tts|guard|playai|orpheus|prompt-guard|compound/i.test(id) && !gone.has(id));
-        if (image) ids.splice(0, ids.length, ...ids.filter((id) => /llama-4|vision/i.test(id)));
-        const prefer = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
-        ids.sort((a, b) => (prefer.indexOf(a) + 1 || 99) - (prefer.indexOf(b) + 1 || 99));
-        for (const id of ids.slice(0, 4)) {
+        if (image) {
+          // Vision models come and go on Groq, so find one by name; failing that, try the other chat models.
+          console.log("groq models for image:", ids.join(", "));
+          const SEES = /vision|-vl|vl-|llama-4|scout|maverick|gemma-3|pixtral|llava|kimi|qwen.*(vl|omni)|multimodal/i;
+          const TEXT_ONLY = /gpt-oss|llama-3\.|llama3|deepseek|qwen3-32b|allam|mistral-saba|distil/i;
+          const sees = ids.filter((id) => SEES.test(id));
+          const rest = ids.filter((id) => !SEES.test(id) && !TEXT_ONLY.test(id));
+          ids.splice(0, ids.length, ...sees, ...rest);
+        } else {
+          const prefer = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
+          ids.sort((a, b) => (prefer.indexOf(a) + 1 || 99) - (prefer.indexOf(b) + 1 || 99));
+        }
+        for (const id of ids.slice(0, image ? 6 : 4)) {
           const out = await attempt(id, {});
           if (out instanceof Response) return out;
         }
@@ -280,6 +289,7 @@ Deno.serve(async (req) => {
       console.error("groq models list failed", String(e));
     }
 
+    if (image) return json({ error: "Kepler can't read images right now: no image model is available. Try learning from text instead." }, 502, origin);
     return json({ error: "No Groq model is available right now." }, 502, origin);
   }
 });
