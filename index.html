@@ -310,8 +310,23 @@ body{
   .frame{padding-left:calc(env(safe-area-inset-left,0px) + 276px)}
 }
 /* Terminal page: a plain black screen beside the sidebar. */
-.term-page{position:fixed;inset:0;z-index:19;background:#000}
+.term-page{position:fixed;inset:0;z-index:19;background:#000;color:#fff;display:flex;flex-direction:column;
+  font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom))}
 .term-page[hidden]{display:none}
+.term-out{flex:1;min-height:0;overflow-y:auto;white-space:pre-wrap;word-break:break-word;padding-bottom:12px;scrollbar-width:thin;scrollbar-color:#444 transparent}
+.term-out .p{color:#4ade80}.term-out .err{color:#f87171}.term-out .dir{color:#60a5fa}.term-out .dim{color:#a3a3a3}
+.term-form{display:flex;gap:8px;flex:none}
+.term-input{flex:1;min-width:0;height:48px;padding:0 14px;border-radius:0;border:1px solid #fff;background:#000;color:#fff;font:inherit;font-size:15px;caret-color:#fff}
+.term-input:focus{outline:none;box-shadow:0 0 0 1px #fff}
+.term-send{flex:none;height:48px;padding:0 18px;border-radius:0;border:1px solid #fff;background:#fff;color:#000;font:inherit;font-weight:600;cursor:pointer}
+.term-send:hover{background:#d4d4d4}
+.term-send:focus-visible{outline:2px solid #4ade80;outline-offset:2px}
+/* In Term mode the sidebar goes black with white text. */
+body.term-mode .side{--s-bg:#000;--s-ink:#fff;--s-soft:#e5e5e5;--s-muted:#a3a3a3;--s-hover:rgba(255,255,255,.08);--s-active:rgba(255,255,255,.14);--s-line:rgba(255,255,255,.14)}
+body.term-mode .seg{background:rgba(255,255,255,.06)}
+body.term-mode .seg button[aria-pressed="true"]{background:#262626;color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+body.term-mode .side-search{background:#111}
 @media (min-width:900px){.term-page{left:calc(260px + env(safe-area-inset-left,0px))}}
 /* Phones and narrow windows: the chats panel becomes a slide-out drawer, opened with the ☰ button. */
 .side-toggle,.side-scrim{display:none}
@@ -676,7 +691,13 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
 </button>
 <div class="side-scrim" id="sideScrim"></div>
-<div class="term-page" id="termPage" hidden></div>
+<div class="term-page" id="termPage" hidden>
+  <div class="term-out" id="termOut" role="log" aria-live="polite"></div>
+  <form class="term-form" id="termForm" autocomplete="off">
+    <input class="term-input" id="termInput" type="text" aria-label="Terminal input" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button type="submit" class="term-send" id="termSend">Send</button>
+  </form>
+</div>
 <aside class="side" id="side" aria-label="Chats">
   <div class="side-top">
     <div class="side-brand"><img src="brand/logo.png" alt="" width="34" height="22"><span id="sideTitle">Chat</span></div>
@@ -687,7 +708,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
       <button type="button" id="segCode" aria-pressed="false" aria-label="Kepler Code" title="Kepler Code">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 7-5 5 5 5M16 7l5 5-5 5M13.5 5l-3 14"/></svg>
       </button>
-      <button type="button" id="segTerm" aria-pressed="false" aria-label="Terminal" title="Terminal">
+      <button type="button" id="segTerm" aria-pressed="false" aria-label="Term" title="Term">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="m7 10 3 2.5L7 15M12.5 15H17"/></svg>
       </button>
     </div>
@@ -1261,12 +1282,176 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   function setTerm(on) {
     $('termPage').hidden = !on;
     $('segTerm').setAttribute('aria-pressed', String(on));
-    if (on) { $('segChat').setAttribute('aria-pressed', 'false'); $('segCode').setAttribute('aria-pressed', 'false'); $('sideTitle').textContent = 'Terminal'; }
+    document.body.classList.toggle('term-mode', on);
+    if (on) { $('segChat').setAttribute('aria-pressed', 'false'); $('segCode').setAttribute('aria-pressed', 'false'); $('sideTitle').textContent = 'Term'; }
     else paintMode();
   }
   $('segChat').onclick = () => { setTerm(false); setChatMode('chat'); };
   $('segCode').onclick = () => { setTerm(false); setChatMode('code'); };
-  $('segTerm').onclick = () => setTerm(true);
+  $('segTerm').onclick = () => { setTerm(true); termInit(); setTimeout(() => $('termInput').focus(), 0); };
+
+  // ── Term: a small shell that runs in the browser, with a virtual filesystem saved per browser ──
+  const TERM_KEY = 'kepler-term-fs', TERM_HIST = 'kepler-term-hist';
+  const termOut = $('termOut'), termIn = $('termInput');
+  let tfs = safe(() => JSON.parse(localStorage.getItem(TERM_KEY)), null);
+  if (!tfs || tfs.t !== 'd') tfs = { t: 'd', c: { home: { t: 'd', c: { user: { t: 'd', c: {
+    'readme.txt': { t: 'f', d: 'Welcome to Kepler Term.\nType "help" to see the commands.\n' } } } } }, tmp: { t: 'd', c: {} } } };
+  let tcwd = '/home/user', thist = safe(() => JSON.parse(localStorage.getItem(TERM_HIST)), null) || [], thi = thist.length, tstarted = false;
+  const tenv = { HOME: '/home/user', SHELL: '/bin/ksh', TERM: 'xterm-256color' };
+  const tsave = () => safe(() => { localStorage.setItem(TERM_KEY, JSON.stringify(tfs)); localStorage.setItem(TERM_HIST, JSON.stringify(thist.slice(-200))); });
+  const tuser = () => (profile.name || 'user').toLowerCase().replace(/[^a-z0-9_-]/g, '') || 'user';
+  const tesc = t => String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  const tpretty = p => p === tenv.HOME ? '~' : p.startsWith(tenv.HOME + '/') ? '~' + p.slice(tenv.HOME.length) : p;
+  const tprompt = () => `<span class="p">${tesc(tuser())}@kepler</span>:<span class="dir">${tesc(tpretty(tcwd))}</span>$ `;
+  function tprint(html, cls) { const d = document.createElement('div'); if (cls) d.className = cls; d.innerHTML = html; termOut.appendChild(d); termOut.scrollTop = termOut.scrollHeight; }
+  function tresolve(p) {
+    if (!p) return tcwd;
+    if (p === '~' || p.startsWith('~/')) p = tenv.HOME + p.slice(1);
+    const parts = (p.startsWith('/') ? p : tcwd + '/' + p).split('/'), out = [];
+    for (const x of parts) { if (!x || x === '.') continue; if (x === '..') out.pop(); else out.push(x); }
+    return '/' + out.join('/');
+  }
+  function tget(path) { let n = tfs; for (const x of path.split('/').filter(Boolean)) { if (n.t !== 'd' || !n.c[x]) return null; n = n.c[x]; } return n; }
+  function tparent(path) { const i = path.lastIndexOf('/'); return [tget(path.slice(0, i) || '/'), path.slice(i + 1)]; }
+  function ttokens(line) {
+    const out = []; let cur = '', q = null, has = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (q) { if (ch === q) q = null; else if (ch === '\\' && q === '"' && i + 1 < line.length) cur += line[++i]; else cur += ch; }
+      else if (ch === '"' || ch === "'") { q = ch; has = true; }
+      else if (ch === '\\' && i + 1 < line.length) { cur += line[++i]; has = true; }
+      else if (/\s/.test(ch)) { if (cur || has) out.push(cur); cur = ''; has = false; }
+      else if (ch === '>' ) { if (cur || has) out.push(cur); cur = ''; has = false; if (line[i + 1] === '>') { out.push('>>'); i++; } else out.push('>'); }
+      else if (ch === '$' && /[A-Za-z_?]/.test(line[i + 1] || '')) { const m = line.slice(i + 1).match(/^(\?|[A-Za-z_]\w*)/)[0]; cur += m === '?' ? String(tstatus) : (tenv[m] ?? ''); i += m.length; has = true; }
+      else cur += ch;
+    }
+    if (cur || has) out.push(cur);
+    return out;
+  }
+  let tstatus = 0;
+  const TCMDS = {
+    help: () => ['Commands:',
+      '  help                 show this list',
+      '  clear                clear the screen (or Ctrl+L)',
+      '  echo TEXT            print text (supports > file and >> file)',
+      '  pwd, cd DIR, ls [-a] [DIR]',
+      '  mkdir [-p] DIR, touch FILE, cat FILE, rm [-r] PATH, rmdir DIR',
+      '  mv SRC DEST, cp SRC DEST, tree [DIR], head/tail [-n N] FILE, wc FILE',
+      '  grep TEXT FILE, find [DIR]',
+      '  date, whoami, hostname, uname [-a], uptime',
+      '  env, export NAME=VALUE, history, calc EXPR, open URL',
+      '  reset                wipe the filesystem back to the start',
+      'Keys: Up/Down history, Tab completes, Ctrl+C cancels, Ctrl+L clears.'].join('\n'),
+    clear: () => { termOut.innerHTML = ''; return ''; },
+    echo: a => a.join(' '),
+    pwd: () => tcwd,
+    whoami: () => tuser(),
+    hostname: () => 'kepler',
+    uname: a => a[0] === '-a' ? `KeplerOS kepler 1.0.0 ${navigator.platform || 'web'} browser` : 'KeplerOS',
+    date: () => new Date().toString(),
+    uptime: () => { const s = Math.floor(performance.now() / 1000); return `up ${Math.floor(s / 60)} min ${s % 60} sec`; },
+    env: () => Object.entries(tenv).map(([k, v]) => k + '=' + v).join('\n'),
+    export: a => { for (const x of a) { const m = x.match(/^([A-Za-z_]\w*)=(.*)$/); if (!m) throw 'export: not a valid identifier: ' + x; tenv[m[1]] = m[2]; } return ''; },
+    history: () => thist.map((h, i) => String(i + 1).padStart(4) + '  ' + h).join('\n'),
+    cd: a => { const p = tresolve(a[0] || '~'), n = tget(p); if (!n) throw 'cd: no such file or directory: ' + a[0]; if (n.t !== 'd') throw 'cd: not a directory: ' + a[0]; tcwd = p; return ''; },
+    ls: a => {
+      const all = a.includes('-a') || a.includes('-la') || a.includes('-al'), long = a.some(x => /^-\w*l/.test(x));
+      const targets = a.filter(x => !x.startsWith('-')); const p = tresolve(targets[0]), n = tget(p);
+      if (!n) throw 'ls: cannot access ' + (targets[0] || p) + ': No such file or directory';
+      if (n.t === 'f') return tesc(targets[0]);
+      let names = Object.keys(n.c).sort(); if (all) names = ['.', '..', ...names];
+      const fmt = k => { const c = n.c[k], d = !c || c.t === 'd'; const nm = d ? `<span class="dir">${tesc(k)}</span>` : tesc(k);
+        return long ? `${d ? 'drwxr-xr-x' : '-rw-r--r--'}  ${String(c && c.t === 'f' ? c.d.length : 4096).padStart(6)}  ${nm}` : nm; };
+      return { html: names.map(fmt).join(long ? '\n' : '  ') };
+    },
+    mkdir: a => { const p = a.includes('-p'); for (const x of a.filter(x => x !== '-p')) {
+      const full = tresolve(x); if (p) { let n = tfs; for (const s of full.split('/').filter(Boolean)) { n.c[s] = n.c[s] || { t: 'd', c: {} }; n = n.c[s]; if (n.t !== 'd') throw 'mkdir: not a directory: ' + x; } continue; }
+      const [par, nm] = tparent(full); if (!par || par.t !== 'd') throw 'mkdir: cannot create directory ' + x + ': No such file or directory';
+      if (par.c[nm]) throw 'mkdir: cannot create directory ' + x + ': File exists'; par.c[nm] = { t: 'd', c: {} }; } return ''; },
+    touch: a => { for (const x of a) { const [par, nm] = tparent(tresolve(x)); if (!par || par.t !== 'd') throw 'touch: cannot touch ' + x + ': No such file or directory'; par.c[nm] = par.c[nm] || { t: 'f', d: '' }; } return ''; },
+    cat: a => { if (!a.length) throw 'cat: missing file operand'; return a.map(x => { const n = tget(tresolve(x)); if (!n) throw 'cat: ' + x + ': No such file or directory'; if (n.t === 'd') throw 'cat: ' + x + ': Is a directory'; return n.d.replace(/\n$/, ''); }).join('\n'); },
+    rm: a => { const r = a.some(x => /^-\w*r/i.test(x)); for (const x of a.filter(x => !x.startsWith('-'))) {
+      const full = tresolve(x); if (full === '/') throw 'rm: refusing to remove /'; const [par, nm] = tparent(full); const n = par && par.c[nm];
+      if (!n) throw 'rm: cannot remove ' + x + ': No such file or directory'; if (n.t === 'd' && !r) throw 'rm: cannot remove ' + x + ': Is a directory';
+      delete par.c[nm]; if (!tget(tcwd)) tcwd = '/'; } return ''; },
+    rmdir: a => { for (const x of a) { const [par, nm] = tparent(tresolve(x)); const n = par && par.c[nm];
+      if (!n || n.t !== 'd') throw 'rmdir: failed to remove ' + x + ': Not a directory'; if (Object.keys(n.c).length) throw 'rmdir: failed to remove ' + x + ': Directory not empty'; delete par.c[nm]; } return ''; },
+    mv: a => tcopy(a, true, 'mv'),
+    cp: a => tcopy(a.filter(x => !x.startsWith('-')), false, 'cp'),
+    tree: a => { const p = tresolve(a[0]), n = tget(p); if (!n || n.t !== 'd') throw 'tree: ' + (a[0] || p) + ': not a directory';
+      const lines = [`<span class="dir">${tesc(a[0] || '.')}</span>`]; const walk = (d, pre) => { const ks = Object.keys(d.c).sort(); ks.forEach((k, i) => {
+        const last = i === ks.length - 1, c = d.c[k]; lines.push(pre + (last ? '└── ' : '├── ') + (c.t === 'd' ? `<span class="dir">${tesc(k)}</span>` : tesc(k))); if (c.t === 'd') walk(c, pre + (last ? '    ' : '│   ')); }); };
+      walk(n, ''); return { html: lines.join('\n') }; },
+    head: a => tslice(a, 'head'), tail: a => tslice(a, 'tail'),
+    wc: a => { const n = tfile(a[0], 'wc'); return `${n.d.split('\n').length - (n.d.endsWith('\n') ? 1 : 0)} ${n.d.split(/\s+/).filter(Boolean).length} ${n.d.length} ${a[0]}`; },
+    grep: a => { if (a.length < 2) throw 'usage: grep TEXT FILE'; const n = tfile(a[1], 'grep'); const hits = n.d.split('\n').filter(l => l.includes(a[0])); if (!hits.length) { tstatus = 1; } return hits.join('\n'); },
+    find: a => { const base = tresolve(a[0]), n = tget(base); if (!n) throw 'find: ' + a[0] + ': No such file or directory'; const out = [a[0] || '.'];
+      const walk = (d, p) => { if (d.t !== 'd') return; for (const k of Object.keys(d.c).sort()) { out.push(p + '/' + k); walk(d.c[k], p + '/' + k); } }; walk(n, a[0] || '.'); return out.join('\n'); },
+    calc: a => { const e = a.join(' '); if (!/^[\d\s+\-*/%().^]+$/.test(e)) throw 'calc: only numbers and + - * / % ^ ( ) are allowed'; return String(Function('"use strict";return (' + e.replace(/\^/g, '**') + ')')()); },
+    open: a => { if (!/^https?:\/\//.test(a[0] || '')) throw 'open: give a full http(s) URL'; window.open(a[0], '_blank', 'noopener'); return 'Opened ' + a[0]; },
+    reset: () => { safe(() => localStorage.removeItem(TERM_KEY)); location.reload(); return ''; },
+    exit: () => { $('segChat').click(); return ''; },
+    sudo: () => { throw 'sudo: permission denied. Nice try.'; },
+  };
+  function tfile(x, cmd) { if (!x) throw cmd + ': missing file operand'; const n = tget(tresolve(x)); if (!n) throw cmd + ': ' + x + ': No such file or directory'; if (n.t === 'd') throw cmd + ': ' + x + ': Is a directory'; return n; }
+  function tslice(a, cmd) { let k = 10, i = a.indexOf('-n'); if (i >= 0) { k = parseInt(a[i + 1], 10) || 10; a = a.filter((_, j) => j !== i && j !== i + 1); }
+    const lines = tfile(a[0], cmd).d.replace(/\n$/, '').split('\n'); return (cmd === 'head' ? lines.slice(0, k) : lines.slice(-k)).join('\n'); }
+  function tcopy(a, move, cmd) {
+    if (a.length !== 2) throw `usage: ${cmd} SRC DEST`;
+    const src = tresolve(a[0]), [sp, sn] = tparent(src), node = sp && sp.c[sn]; if (!node) throw `${cmd}: cannot stat ${a[0]}: No such file or directory`;
+    let dest = tresolve(a[1]); const dn = tget(dest); if (dn && dn.t === 'd') dest += '/' + sn;
+    if ((dest + '/').startsWith(src + '/')) throw `${cmd}: cannot copy a directory into itself`;
+    const [dp, dname] = tparent(dest); if (!dp || dp.t !== 'd') throw `${cmd}: cannot create ${a[1]}: No such file or directory`;
+    dp.c[dname] = move ? node : JSON.parse(JSON.stringify(node)); if (move) delete sp.c[sn]; return '';
+  }
+  function trun(line) {
+    tprint(tprompt() + tesc(line));
+    if (!line.trim()) return;
+    if (thist[thist.length - 1] !== line) thist.push(line); thi = thist.length;
+    for (const seg of line.split(/\s*(?:&&|;)\s*/)) {
+      if (!seg.trim()) continue;
+      let args = ttokens(seg), redir = null;
+      const ri = args.findIndex(x => x === '>' || x === '>>');
+      if (ri >= 0) { redir = { mode: args[ri], file: args[ri + 1] }; args = args.slice(0, ri); }
+      const [cmd, ...rest] = args, fn = TCMDS[cmd];
+      tstatus = 0;
+      try {
+        if (!fn) throw cmd + ': command not found';
+        const r = fn(rest), isHtml = r && typeof r === 'object';
+        if (redir) {
+          if (!redir.file) throw 'syntax error near unexpected token newline';
+          const text = (isHtml ? r.html.replace(/<[^>]+>/g, '') : r) + '\n', [par, nm] = tparent(tresolve(redir.file));
+          if (!par || par.t !== 'd') throw redir.file + ': No such file or directory';
+          if (par.c[nm] && par.c[nm].t === 'd') throw redir.file + ': Is a directory';
+          par.c[nm] = { t: 'f', d: redir.mode === '>>' && par.c[nm] ? par.c[nm].d + text : text };
+        } else if (isHtml) { if (r.html) tprint(r.html); }
+        else if (r) tprint(tesc(r));
+      } catch (e) { tstatus = 1; tprint(tesc(typeof e === 'string' ? e : 'error: ' + e.message), 'err'); if (line.includes('&&')) break; }
+    }
+    tsave();
+  }
+  function termInit() {
+    if (tstarted) return; tstarted = true;
+    tprint('Kepler Term 1.0. Type "help" for commands.', 'dim');
+  }
+  $('termForm').onsubmit = e => { e.preventDefault(); const v = termIn.value; termIn.value = ''; trun(v); termIn.focus(); };
+  termIn.addEventListener('keydown', e => {
+    if (e.key === 'ArrowUp') { e.preventDefault(); if (thi > 0) termIn.value = thist[--thi]; }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); thi = Math.min(thist.length, thi + 1); termIn.value = thist[thi] || ''; }
+    else if (e.ctrlKey && e.key.toLowerCase() === 'l') { e.preventDefault(); termOut.innerHTML = ''; }
+    else if (e.ctrlKey && e.key.toLowerCase() === 'c' && !termIn.value.slice(termIn.selectionStart, termIn.selectionEnd)) { e.preventDefault(); tprint(tprompt() + tesc(termIn.value) + '^C'); termIn.value = ''; }
+    else if (e.key === 'Tab') {
+      e.preventDefault();
+      const v = termIn.value, m = v.match(/(\S*)$/), word = m[1], first = !v.slice(0, v.length - word.length).trim();
+      let opts;
+      if (first) opts = Object.keys(TCMDS).filter(c => c.startsWith(word));
+      else { const k = word.lastIndexOf('/'), dir = k >= 0 ? word.slice(0, k + 1) : '', pre = word.slice(k + 1), n = tget(tresolve(dir || '.'));
+        opts = n && n.t === 'd' ? Object.keys(n.c).filter(x => x.startsWith(pre)).map(x => dir + x + (n.c[x].t === 'd' ? '/' : '')) : []; }
+      if (opts.length === 1) termIn.value = v.slice(0, v.length - word.length) + opts[0] + (first ? ' ' : '');
+      else if (opts.length > 1) { tprint(tprompt() + tesc(v)); tprint(tesc(opts.join('  '))); }
+    }
+  });
+  $('termPage').addEventListener('mouseup', () => { if (!getSelection().toString()) termIn.focus(); });
 
   // Replies: plain text, plus a preview card for HTML/CSS/JS and dark code blocks for anything else.
   const WEB_HTML = ['html', 'htm', 'xhtml', 'svg', 'xml'];
