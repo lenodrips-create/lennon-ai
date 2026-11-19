@@ -267,10 +267,15 @@ body.code-mode .slash-btn{display:inline-flex}
 .side-brand{display:flex;align-items:center;gap:10px;min-width:0}
 .side-brand img{height:22px;width:auto;display:block;flex:none}
 .side-brand span{font-family:var(--font-display);font-weight:500;font-size:24px;line-height:1;letter-spacing:-.01em}
-.seg{display:flex;gap:2px;padding:3px;border-radius:12px;background:rgba(0,0,0,.04);border:1px solid var(--s-line);flex:none}
+.seg{position:relative;display:flex;gap:2px;padding:3px;border-radius:12px;background:rgba(0,0,0,.04);border:1px solid var(--s-line);flex:none}
+.seg-pill{position:absolute;top:3px;left:3px;width:34px;height:30px;border-radius:9px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.1),inset 0 0 0 1px rgba(0,0,0,.06);
+  transform:translateX(0);transition:transform .45s var(--e-primary),background .35s ease,box-shadow .35s ease}
+.seg:has(#segCode[aria-pressed="true"]) .seg-pill{transform:translateX(36px)}
+.seg:has(#segTerm[aria-pressed="true"]) .seg-pill{transform:translateX(72px)}
+.seg button{position:relative;z-index:1}
 .seg button{width:34px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:9px;color:var(--s-muted);cursor:pointer;transition:background .15s,color .15s}
 .seg button:hover{color:var(--s-ink)}
-.seg button[aria-pressed="true"]{background:#fff;color:var(--s-ink);box-shadow:0 1px 2px rgba(0,0,0,.1),inset 0 0 0 1px rgba(0,0,0,.06)}
+.seg button[aria-pressed="true"]{color:var(--s-ink)}
 .side-nav{display:flex;flex-direction:column;gap:1px}
 .s-item{
   display:flex;align-items:center;gap:12px;width:100%;height:36px;padding:0 10px;border-radius:10px;
@@ -389,7 +394,8 @@ body.code-mode .slash-btn{display:inline-flex}
 /* In Term mode the sidebar goes black with white text. */
 body.term-mode .side{--s-bg:#000;--s-ink:#fff;--s-soft:#e5e5e5;--s-muted:#a3a3a3;--s-hover:rgba(255,255,255,.08);--s-active:rgba(255,255,255,.14);--s-line:rgba(255,255,255,.14)}
 body.term-mode .seg{background:rgba(255,255,255,.06)}
-body.term-mode .seg button[aria-pressed="true"]{background:#262626;color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+body.term-mode .seg button[aria-pressed="true"]{color:#fff}
+body.term-mode .seg-pill{background:#262626;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
 body.term-mode .side-search{background:#111}
 @media (min-width:900px){.term-page{left:calc(260px + env(safe-area-inset-left,0px))}}
 /* Phones and narrow windows: the chats panel becomes a slide-out drawer, opened with the ☰ button. */
@@ -636,6 +642,26 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   .anim .side{animation:e-panel .9s var(--e-primary) .35s both}
   .anim .by{animation:e-up .55s var(--e-soft) .9s both}
 }
+/* ── Motion: mode switches (view transitions), menus, messages, preview ── */
+.side{view-transition-name:side}
+.hero{view-transition-name:hero}
+.term-page{view-transition-name:learn}
+@keyframes m-pop{from{opacity:0;transform:translateY(-2px) scale(.97)}}
+@keyframes m-rise{from{opacity:0;transform:translateY(10px)}}
+@keyframes m-slide{from{opacity:0;transform:translateX(28px)}}
+@keyframes vt-hero-in{from{opacity:0;transform:translateY(12px);filter:blur(4px)}}
+@keyframes vt-hero-out{to{opacity:0;transform:translateY(-6px);filter:blur(2px)}}
+@media (prefers-reduced-motion:no-preference){
+  .menu:not([hidden]){animation:m-pop .2s var(--e-soft) both;transform-origin:bottom left}
+  .menu-model:not([hidden]){transform-origin:bottom right}
+  .msg{animation:m-rise .42s var(--e-primary) both}
+  .msg.user{transform-origin:bottom right}
+  .pv:not([hidden]){animation:m-slide .45s var(--e-primary) both}
+  .chat-btn,.s-item{transition:background .18s ease,color .18s ease}
+  ::view-transition-group(*){animation-duration:.45s;animation-timing-function:var(--e-primary)}
+  ::view-transition-old(hero){animation:vt-hero-out .22s ease both}
+  ::view-transition-new(hero){animation:vt-hero-in .5s var(--e-primary) .06s both}
+}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
@@ -774,6 +800,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   <div class="side-top">
     <div class="side-brand"><img src="brand/logo.png" alt="" width="34" height="22"><span id="sideTitle">Chat</span></div>
     <div class="seg" role="group" aria-label="Mode">
+      <span class="seg-pill" aria-hidden="true"></span>
       <button type="button" id="segChat" aria-pressed="true" aria-label="Chat" title="Chat">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.1A8 8 0 1 1 20 12Z"/></svg>
       </button>
@@ -1359,9 +1386,15 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     if (on) { $('segChat').setAttribute('aria-pressed', 'false'); $('segCode').setAttribute('aria-pressed', 'false'); $('sideTitle').textContent = 'Learn'; paintSkills(); }
     else paintMode();
   }
-  $('segChat').onclick = () => { setTerm(false); setChatMode('chat'); };
-  $('segCode').onclick = () => { setTerm(false); setChatMode('code'); };
-  $('segTerm').onclick = () => { setTerm(true); setTimeout(() => $('termInput').focus(), 0); };
+  // Switching Chat / Code / Learn crossfades the page (where the browser supports view transitions).
+  function swapView(fn) {
+    if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) { fn(); return Promise.resolve(); }
+    return document.startViewTransition(fn).updateCallbackDone.catch(() => {});
+  }
+  const onLearn = () => !$('termPage').hidden;
+  $('segChat').onclick = () => { if (busy || (chatMode === 'chat' && !onLearn())) return; swapView(() => { setTerm(false); setChatMode('chat'); }); };
+  $('segCode').onclick = () => { if (busy || (chatMode === 'code' && !onLearn())) return; swapView(() => { setTerm(false); setChatMode('code'); }); };
+  $('segTerm').onclick = () => { if (onLearn()) return; swapView(() => setTerm(true)).then(() => $('termInput').focus()); };
 
   // ── Learning environment: Kepler studies a skill, writes itself a guide, and uses it in later chats ──
   // Skills are saved to the account (Supabase table "skills"). While Kepler is learning, the learning video plays.
@@ -1505,6 +1538,15 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     hud.stage.remove(); hud = null;
     $('termPage').classList.remove('playing');
   }
+  // Kepler learns a skill for itself: the guide is first-person instructions it follows to DO the skill, not a lesson for the user.
+  const LEARN_INTRO = 'You are Kepler, an AI. You are learning a skill so that YOU can perform it in future chats whenever a user asks. ' +
+    'This is not a lesson for the user: never give the user exercises, practice routines, tips to improve, or homework.\n';
+  const LEARN_RULES = 'Write the private instructions you will follow to DO this skill yourself, in the first person ("I ..."). ' +
+    'Line 1 must be exactly "SKILL: " followed by a short name for the skill (2 to 5 words). Then cover: what I produce when someone asks for this; ' +
+    'how I do it, step by step, using my real abilities (writing text, writing code such as HTML, CSS, SVG and canvas, and creating pictures with a line that reads [[image: a detailed visual description]]); ' +
+    'the quality bar I hold myself to; and what I avoid. If the skill is physical or something a text AI cannot literally do (for example handwriting, drawing, painting or singing), ' +
+    'describe how I produce the closest real result with those abilities, such as handwriting shown as a [[image: ...]] picture of handwritten text or as a web page using a handwriting-style font. ' +
+    'Plain text, no markdown headings, under 1200 characters.';
   async function learn() {
     const typed = termIn.value.trim(), img = termImage;
     if ((!typed && !img) || learning) return;
@@ -1537,13 +1579,13 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + s.session.access_token },
         body: JSON.stringify({ model, effort, mode: 'chat', ...(img ? { image: img.url } : {}), messages: [{ role: 'user', content:
+          LEARN_INTRO +
           (img
-            ? `You are learning a new skill from the attached image so you can use it later.${typed ? ` The user says: "${typed}".` : ''} Study the image closely first.\n` +
-              `If it shows a visual style (art, photo, design, UI), describe that style precisely (colours, shapes, layout, lighting, mood, textures) so you can recreate it in [[image: ...]] pictures and in web pages. ` +
-              `If it shows text, a diagram, a method or an example, learn the method it teaches.\n`
-            : `You are learning a new skill so you can use it later in conversations. The skill: "${topic}".\n`) +
-          `Write the guide you will follow whenever this skill is useful. Line 1 must be exactly "SKILL: " followed by a short name for the skill (2 to 5 words). ` +
-          `Then, in plain text with no markdown headings, cover when to use it, the key steps or rules, and common mistakes to avoid. Keep the whole reply under 1200 characters.` }] }),
+            ? `You are acquiring a new skill for yourself from the attached image.${typed ? ` The user says: "${typed}".` : ''} Study the image closely first. ` +
+              `If it shows a visual style (art, photo, design, UI, handwriting), capture that style precisely (colours, shapes, strokes, layout, lighting, mood, textures) so you can reproduce it yourself in [[image: ...]] pictures and in web pages. ` +
+              `If it shows text, a diagram, a method or an example, learn to perform that method yourself.\n`
+            : `You are acquiring a new skill for yourself: "${topic}".\n`) +
+          LEARN_RULES }] }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok && data.code === 'limit') { left = 0; usageDay = utcDay(); paintLeft(); throw new Error(data.error); }
@@ -1791,7 +1833,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     const total = skills.reduce((n, sk) => n + sk.notes.length, 0);
     const used = new Set(msgs.filter(m => m.role === 'user').map(m => (m.content.match(/^\[Use my learned skill "(.+?)"/) || [])[1]).filter(Boolean));
     const full = sk => total < 12000 || used.has(sk.name);
-    const text = 'Skills I have learned. I use them whenever they fit the request, and always when asked for one by name:\n\n' +
+    const text = 'Skills I have learned and can perform myself. I use them whenever they fit the request, and always when asked for one by name. I perform them for the user; I do not turn them into lessons or exercises for the user:\n\n' +
       skills.map(sk => full(sk) ? `SKILL: ${sk.name}\n${sk.notes}` : `SKILL: ${sk.name} (${sk.notes.split('\n')[0].slice(0, 120)})`).join('\n\n');
     return [{ role: 'user', content: 'Which skills have you learned?' }, { role: 'assistant', content: text.slice(0, 55000) }, ...msgs.slice(-(MAX_MESSAGES - 2))];
   }
