@@ -79,11 +79,6 @@ body{
   text-shadow:0 2px 22px rgba(0,0,0,.30);
 }
 
-/* Headline: soft colour wash, warm for Chat and cool for Code */
-.h1{background:linear-gradient(100deg,#fff 30%,#ffd9c2 75%,#ffb48a);-webkit-background-clip:text;background-clip:text;color:transparent;
-  text-shadow:none;filter:drop-shadow(0 2px 14px rgba(0,0,0,.32))}
-body.code-mode .h1{background-image:linear-gradient(100deg,#fff 30%,#ecd9ff 70%,#f5b8f0)}
-
 /* Reply text: a little colour for structure (fonts unchanged) */
 .tx-mark{color:#C35120;font-weight:600}
 .tx-label{color:#9a3412;font-weight:600}
@@ -354,6 +349,15 @@ body.code-mode .slash-btn{display:inline-flex}
 .term-out{flex:1;min-height:0;overflow-y:auto;white-space:pre-wrap;word-break:break-word;padding-bottom:12px;scrollbar-width:thin;scrollbar-color:#444 transparent}
 .term-out .p{color:#4ade80}.term-out .err{color:#f87171}.term-out .dir{color:#60a5fa}.term-out .dim{color:#a3a3a3}
 .term-out .you{color:#e5e5e5}
+.term-out .head{background:linear-gradient(90deg,#4ade80,#22d3ee);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:600}
+.term-out .count{color:#22d3ee}
+.term-notes .tx-mark{color:#f472b6;font-weight:600}
+.term-notes .tx-label{color:#c4b5fd;font-weight:600}
+.term-notes .tx-strong{color:#fff;font-weight:600}
+.term-notes .tx-code{color:#fbbf24;background:rgba(251,191,36,.1);border-radius:4px;padding:0 4px}
+.term-notes .tx-link{color:#60a5fa}
+.term-notes .tx-i{color:#67e8f9}
+.term-out .ok{color:#4ade80;font-weight:600}
 .term-out .ask{color:#fbbf24;border-left:2px solid #fbbf24;padding-left:10px;margin-top:6px}
 .term-skill b{background:linear-gradient(90deg,#f472b6,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}
 .learn-stage{position:absolute;left:0;right:0;top:0;bottom:calc(max(16px,env(safe-area-inset-bottom)) + 60px);z-index:0;display:flex;gap:14px;
@@ -1455,10 +1459,10 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   function tline(text, cls) { const d = document.createElement('div'); if (cls) d.className = cls; d.textContent = text; termOut.appendChild(d); termOut.scrollTop = termOut.scrollHeight; return d; }
   function paintSkills() {
     termOut.innerHTML = '';
-    tline('Kepler Learning Environment', 'p');
+    tline('Kepler Learning Environment', 'head');
     tline('Describe a skill and press Send, or attach an image for Kepler to learn from. Kepler studies it, writes itself a guide, and saves the skill to your account.', 'dim');
     tline('Use a skill in Kepler Code by typing / and its name, or with the / button next to Tools.', 'dim');
-    tline(skills.length ? `\nLearned skills (${skills.length}):` : '\nNo skills learned yet.', 'dim');
+    tline(skills.length ? `\nLearned skills (${skills.length}):` : '\nNo skills learned yet.', skills.length ? 'count' : 'dim');
     skills.forEach((sk, i) => {
       const row = document.createElement('div'); row.className = 'term-skill';
       const b = document.createElement('b'); b.textContent = '✓ ' + sk.name;
@@ -1466,7 +1470,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
       f.setAttribute('aria-label', 'Forget ' + sk.name);
       f.onclick = () => { if (!learning) forgetSkill(sk); };
       row.append(b, f); termOut.appendChild(row);
-      const n = document.createElement('div'); n.className = 'term-notes'; n.textContent = sk.notes; termOut.appendChild(n);
+      const n = document.createElement('div'); n.className = 'term-notes'; n.dataset.raw = sk.notes; styleText(n); markI(n); termOut.appendChild(n);
     });
     termOut.scrollTop = termOut.scrollHeight;
   }
@@ -1672,7 +1676,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
       if (ok) { pending = null; setTermImage(null); }
       else { showSession(); if (pending && pending.rounds) pending.rounds--; else { pending = null; setTermImage(img); } }
       termIn.placeholder = pending ? 'Answer Kepler\'s question...' : LEARN_PLACEHOLDER;
-      tline('\n' + msg, ok ? 'p' : 'err');
+      tline('\n' + (ok ? '✓ ' : '') + msg, ok ? 'ok' : 'err');
     }
     termIn.focus();
   }
@@ -1871,6 +1875,19 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
       parent.appendChild(n); last = INLINE_RE.lastIndex;
     }
     if (last < text.length) parent.appendChild(document.createTextNode(text.slice(last)));
+  }
+  // In skill notes, Kepler's first-person "I" stands out, since the notes are Kepler's own instructions.
+  function markI(node) {
+    const walk = document.createTreeWalker(node, NodeFilter.SHOW_TEXT), list = [];
+    while (walk.nextNode()) if (/\bI\b/.test(walk.currentNode.nodeValue)) list.push(walk.currentNode);
+    for (const t of list) {
+      const frag = document.createDocumentFragment();
+      t.nodeValue.split(/\b(I)\b/).forEach((part, k) => {
+        if (k % 2) { const s = document.createElement('span'); s.className = 'tx-i'; s.textContent = part; frag.appendChild(s); }
+        else if (part) frag.appendChild(document.createTextNode(part));
+      });
+      t.replaceWith(frag);
+    }
   }
   function styleText(node) {
     const text = node.dataset.raw ?? node.textContent;
