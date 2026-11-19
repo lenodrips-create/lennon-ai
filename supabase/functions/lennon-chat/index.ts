@@ -53,6 +53,7 @@ const system = (name: string, style: string) =>
   `You are a friendly chat assistant. ${style} Reply in plain text, no markdown. ` +
   `You can create images: put a line on its own that reads [[image: a detailed visual description]] and the site shows that picture in its place. ` +
   `Use it whenever the user asks you to draw, make, generate, design or show a picture, and you may add a short sentence about it. Never say you cannot create images. ` +
+  `Always use exactly that [[image: ...]] form for pictures: never write HTML <img> tags, markdown images, code blocks or image links in chat. ` +
   `When the user shares an image, look at it carefully and use what you see.`;
 
 // Kepler Code: the coding mode. The site shows any HTML it writes in a live preview panel.
@@ -71,7 +72,8 @@ const codeSystem = (name: string) =>
   `JavaScript that runs without errors. For photos or illustrations in a page, use generated images: ` +
   `<img src="https://image.pollinations.ai/prompt/URL-ENCODED%20DESCRIPTION?width=1024&height=768&nologo=true" alt="...">, choosing width and height to fit the layout. ` +
   `Do not use any other outside images, and no fonts or APIs that need keys; draw icons and simple graphics with CSS, inline SVG or canvas. ` +
-  `Outside code blocks you can also show the user a picture with a line that reads [[image: a detailed visual description]]. ` +
+  `When the user just wants a picture (a logo, drawing, photo or artwork) rather than a web page, do not write HTML: reply with a line that reads [[image: a detailed visual description]] and the site shows the picture. ` +
+  `Outside code blocks, never write <img> tags, markdown images or image links; use [[image: ...]] instead. ` +
   `When the user shares an image (a screenshot, sketch or design), look at it carefully and use what you see. ` +
   `Only if a library is really needed, load it from https://cdnjs.cloudflare.com with an exact version. ` +
   `The preview runs in a sandbox, so wrap any localStorage or sessionStorage use in try/catch and do not rely on it.\n\n` +
