@@ -1355,6 +1355,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     $('termPage').hidden = !on;
     $('segTerm').setAttribute('aria-pressed', String(on));
     document.body.classList.toggle('term-mode', on);
+    if (!on && testing) stopTest();
     if (on) { $('segChat').setAttribute('aria-pressed', 'false'); $('segCode').setAttribute('aria-pressed', 'false'); $('sideTitle').textContent = 'Learn'; paintSkills(); }
     else paintMode();
   }
@@ -1367,7 +1368,8 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   const SKILLS_KEY = 'kepler-skills', SKILL_NOTES_MAX = 1500, SKILLS_MAX = 30;
   const termOut = $('termOut'), termIn = $('termInput');
   let skills = [];
-  let learning = false, lvideo = null, termImage = null;
+  let learning = false, lvideo = null, termImage = null, testing = false;
+  function stopTest() { if (!testing) return; testing = false; stopLearning(); paintSkills(); tline('\nStopped.', 'p'); }
   async function loadSkills() {
     const { data, error } = await sb.from('skills').select('id,name,notes,created_at').order('created_at');
     if (error) return;
@@ -1506,6 +1508,19 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   async function learn() {
     const typed = termIn.value.trim(), img = termImage;
     if ((!typed && !img) || learning) return;
+    // "test" plays the learning video without learning anything; "stop" stops it.
+    const cmd = img ? '' : typed.toLowerCase();
+    if (cmd === 'test') {
+      termIn.value = '';
+      if (testing) { tline('Already playing. Type "stop" to stop it.', 'err'); return; }
+      testing = true; playLearning('test'); return;
+    }
+    if (cmd === 'stop') {
+      termIn.value = '';
+      if (!testing) { tline('Nothing is playing.', 'err'); return; }
+      stopTest(); return;
+    }
+    if (testing) { tline('Type "stop" to stop the test first.', 'err'); return; }
     const topic = typed || 'what this image shows';
     if (!user) { tline('Sign in first so Kepler can learn.', 'err'); return; }
     if (outOfMessages()) { showLimit(); return; }
