@@ -79,6 +79,21 @@ body{
   text-shadow:0 2px 22px rgba(0,0,0,.30);
 }
 
+/* Headline: soft colour wash, warm for Chat and cool for Code */
+.h1{background:linear-gradient(100deg,#fff 30%,#ffd9c2 75%,#ffb48a);-webkit-background-clip:text;background-clip:text;color:transparent;
+  text-shadow:none;filter:drop-shadow(0 2px 14px rgba(0,0,0,.32))}
+body.code-mode .h1{background-image:linear-gradient(100deg,#fff 30%,#ecd9ff 70%,#f5b8f0)}
+
+/* Reply text: a little colour for structure (fonts unchanged) */
+.tx-mark{color:#C35120;font-weight:600}
+.tx-label{color:#9a3412;font-weight:600}
+.tx-strong{font-weight:600;color:#111827}
+.tx-code{color:#6d28d9;background:#f5f3ff;border-radius:6px;padding:0 5px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.tx-link{color:#2563eb;text-decoration:underline;text-underline-offset:2px;text-decoration-color:rgba(37,99,235,.35)}
+.tx-link:hover{text-decoration-color:currentColor}
+body.code-mode .tx-mark{color:#2563eb}
+body.code-mode .tx-label{color:#1d4ed8}
+
 /* ── Conversation ── */
 .log{
   display:none;width:min(var(--w),100%);flex:1;min-height:0;overflow-y:auto;
@@ -338,6 +353,9 @@ body.code-mode .slash-btn{display:inline-flex}
 .term-page[hidden]{display:none}
 .term-out{flex:1;min-height:0;overflow-y:auto;white-space:pre-wrap;word-break:break-word;padding-bottom:12px;scrollbar-width:thin;scrollbar-color:#444 transparent}
 .term-out .p{color:#4ade80}.term-out .err{color:#f87171}.term-out .dir{color:#60a5fa}.term-out .dim{color:#a3a3a3}
+.term-out .you{color:#e5e5e5}
+.term-out .ask{color:#fbbf24;border-left:2px solid #fbbf24;padding-left:10px;margin-top:6px}
+.term-skill b{background:linear-gradient(90deg,#f472b6,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}
 .learn-stage{position:absolute;left:0;right:0;top:0;bottom:calc(max(16px,env(safe-area-inset-bottom)) + 60px);z-index:0;display:flex;gap:14px;
   padding:max(16px,env(safe-area-inset-top)) 16px 0;background:#000;color:#d4d4d4;font:11px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .term-video{flex:none;height:100%;aspect-ratio:1080/1440;max-width:calc(100% - 32px);object-fit:contain;background:#000;border:1px solid #1f1f1f}
@@ -1288,7 +1306,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
         vid.paused ? vid.play().catch(() => {}) : vid.pause();
         setTimeout(() => { el.querySelector('.v').textContent = vid.paused ? 'Off' : 'On'; }, 50);
       } },
-      { label: 'Messages today', value: left === null ? `${DAILY_LIMIT} a day` : `${left} of ${DAILY_LIMIT} left`, run: () => {} },
+      { label: 'Messages today', value: !LIMIT_ON ? 'Unlimited (testing)' : left === null ? `${DAILY_LIMIT} a day` : `${left} of ${DAILY_LIMIT} left`, run: () => {} },
       { label: 'Buy credit', run: () => { closePop(); buyCredit(); } },
       '-',
       { label: 'Default mode', value: chatMode === 'code' ? 'Code' : 'Chat', run: el => {
@@ -1541,14 +1559,32 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   // Kepler learns a skill for itself: the guide is first-person instructions it follows to DO the skill, not a lesson for the user.
   const LEARN_INTRO = 'You are Kepler, an AI. You are learning a skill so that YOU can perform it in future chats whenever a user asks. ' +
     'This is not a lesson for the user: never give the user exercises, practice routines, tips to improve, or homework.\n';
+  const LEARN_ASK = 'First decide whether you need one detail from the user to learn this skill well (for example which style, language, tone, audience or level they want). ' +
+    'If you truly need it, reply with ONLY one line: QUESTION: followed by one short, friendly question, and nothing else. If the request is already clear enough, do not ask: write the skill straight away.\n';
   const LEARN_RULES = 'Write the private instructions you will follow to DO this skill yourself, in the first person ("I ..."). ' +
     'Line 1 must be exactly "SKILL: " followed by a short name for the skill (2 to 5 words). Then cover: what I produce when someone asks for this; ' +
     'how I do it, step by step, using my real abilities (writing text, writing code such as HTML, CSS, SVG and canvas, and creating pictures with a line that reads [[image: a detailed visual description]]); ' +
     'the quality bar I hold myself to; and what I avoid. If the skill is physical or something a text AI cannot literally do (for example handwriting, drawing, painting or singing), ' +
     'describe how I produce the closest real result with those abilities, such as handwriting shown as a [[image: ...]] picture of handwritten text or as a web page using a handwriting-style font. ' +
     'Plain text, no markdown headings, under 1200 characters.';
+  // While Kepler is waiting for an answer to its question, the learning session lives here.
+  let pending = null; // { topic, typed, img, messages, rounds, log: [[text, cls]] }
+  const MAX_QUESTIONS = 2;
+  const LEARN_PLACEHOLDER = 'Teach Kepler a new skill...';
+  function learnPrompt(topic, typed, img) {
+    return LEARN_INTRO +
+      (img
+        ? `You are acquiring a new skill for yourself from the attached image.${typed ? ` The user says: "${typed}".` : ''} Study the image closely first. ` +
+          `If it shows a visual style (art, photo, design, UI, handwriting), capture that style precisely (colours, shapes, strokes, layout, lighting, mood, textures) so you can reproduce it yourself in [[image: ...]] pictures and in web pages. ` +
+          `If it shows text, a diagram, a method or an example, learn to perform that method yourself.\n`
+        : `You are acquiring a new skill for yourself: "${topic}".\n`) +
+      LEARN_ASK + LEARN_RULES;
+  }
+  function showSession() { if (pending) pending.log.forEach(([t, c]) => tline(t, c)); }
+  function sessionLine(t, c) { if (pending) pending.log.push([t, c]); tline(t, c); }
   async function learn() {
-    const typed = termIn.value.trim(), img = termImage;
+    const typed = termIn.value.trim();
+    let img = termImage;
     if ((!typed && !img) || learning) return;
     // "test" plays the learning video without learning anything; "stop" stops it.
     const cmd = img ? '' : typed.toLowerCase();
@@ -1563,51 +1599,81 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
       stopTest(); return;
     }
     if (testing) { tline('Type "stop" to stop the test first.', 'err'); return; }
-    const topic = typed || 'what this image shows';
+    if (pending && cmd === 'cancel') {
+      termIn.value = ''; pending = null; termIn.placeholder = LEARN_PLACEHOLDER;
+      paintSkills(); tline('\nCancelled. Nothing was learned.', 'dim'); return;
+    }
     if (!user) { tline('Sign in first so Kepler can learn.', 'err'); return; }
     if (outOfMessages()) { showLimit(); return; }
-    if (skills.length >= SKILLS_MAX && !skills.some(x => x.name.toLowerCase() === typed.toLowerCase())) { tline(`Kepler can hold ${SKILLS_MAX} skills. Forget one to learn another.`, 'err'); return; }
+
+    // A new skill, or an answer to the question Kepler asked.
+    let topic, messages;
+    if (pending) {
+      img = pending.img; topic = pending.topic;
+      pending.rounds++;
+      const last = pending.rounds > MAX_QUESTIONS;
+      messages = [...pending.messages, { role: 'user', content: `My answer: ${typed}\n` +
+        (last ? 'Do not ask anything else. Write the skill now, in the format above.' : 'Now write the skill in the format above. Ask one more QUESTION only if you truly cannot learn it well without it.') }];
+      sessionLine('> ' + typed, 'you');
+    } else {
+      if (skills.length >= SKILLS_MAX && !skills.some(x => x.name.toLowerCase() === typed.toLowerCase())) { tline(`Kepler can hold ${SKILLS_MAX} skills. Forget one to learn another.`, 'err'); return; }
+      topic = typed || 'what this image shows';
+      messages = [{ role: 'user', content: learnPrompt(topic, typed, img) }];
+      pending = { topic, typed, img, messages, rounds: 0, log: [] };
+      sessionLine('\n> ' + (img ? `[image: ${img.name}] ` : '') + typed, 'you');
+    }
+
     learning = true; termIn.value = ''; termIn.disabled = true; $('termSend').disabled = true; $('termFile').disabled = true; $('termChip').hidden = true; termIn.placeholder = 'Kepler is learning...';
-    tline('\n> ' + (img ? `[image: ${img.name}] ` : '') + typed);
     playLearning(topic);
     const started = Date.now();
-    let msg = '', ok = false;
+    let msg = '', ok = false, question = null;
     try {
       const { data: s } = await sb.auth.getSession();
       if (!s.session) throw new Error('You were signed out. Sign in again.');
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + s.session.access_token },
-        body: JSON.stringify({ model, effort, mode: 'chat', ...(img ? { image: img.url } : {}), messages: [{ role: 'user', content:
-          LEARN_INTRO +
-          (img
-            ? `You are acquiring a new skill for yourself from the attached image.${typed ? ` The user says: "${typed}".` : ''} Study the image closely first. ` +
-              `If it shows a visual style (art, photo, design, UI, handwriting), capture that style precisely (colours, shapes, strokes, layout, lighting, mood, textures) so you can reproduce it yourself in [[image: ...]] pictures and in web pages. ` +
-              `If it shows text, a diagram, a method or an example, learn to perform that method yourself.\n`
-            : `You are acquiring a new skill for yourself: "${topic}".\n`) +
-          LEARN_RULES }] }),
+        body: JSON.stringify({ model, effort, mode: 'chat', ...(img ? { image: img.url } : {}), messages }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok && data.code === 'limit') { left = 0; usageDay = utcDay(); paintLeft(); throw new Error(data.error); }
       if (!res.ok) throw new Error(data.error || 'Something went wrong. Try again.');
       if (typeof data.remaining === 'number') { left = data.remaining; usageDay = utcDay(); paintLeft(); }
-      const reply = String(data.reply || '').trim(), m = reply.match(/^\**\s*SKILL:\s*(.+)$/im);
-      const name = ((m && m[1]) || topic).replace(/[*_#`]/g, '').trim().slice(0, 60);
-      const notes = (m ? reply.replace(m[0], '') : reply).replace(/^#+\s*/gm, '').replace(/\*\*/g, '').replace(/```/g, '').trim().slice(0, SKILL_NOTES_MAX);
-      if (!notes) throw new Error('Kepler could not learn that. Try describing the skill differently.');
-      await storeSkill(name, notes);
-      msg = `Learned: ${name}`; ok = true;
+      const reply = String(data.reply || '').trim();
+      const q = reply.match(/^\W*QUESTION:\s*([\s\S]+)/i);
+      if (q && !/^\**\s*SKILL:/im.test(reply) && pending.rounds < MAX_QUESTIONS) {
+        question = q[1].trim().split('\n')[0].replace(/[*_`]/g, '').slice(0, 300);
+        pending.messages = [...messages, { role: 'assistant', content: reply }];
+      } else {
+        const m = reply.match(/^\**\s*SKILL:\s*(.+)$/im);
+        const name = ((m && m[1]) || topic).replace(/[*_#`]/g, '').trim().slice(0, 60);
+        const notes = (m ? reply.replace(m[0], '') : reply).replace(/^#+\s*/gm, '').replace(/\*\*/g, '').replace(/```/g, '').trim().slice(0, SKILL_NOTES_MAX);
+        if (!notes) throw new Error('Kepler could not learn that. Try describing the skill differently.');
+        await storeSkill(name, notes);
+        msg = `Learned: ${name}`; ok = true;
+      }
     } catch (e) {
       msg = (e && e.message && !/fetch/i.test(e.message)) ? e.message : 'Could not reach Kepler AI. Check your connection and try again.';
     }
     // Let the learning video run for at least a few seconds so it reads as a learning session.
-    const wait = 4000 - (Date.now() - started);
+    const wait = (question ? 2500 : 4000) - (Date.now() - started);
     if (wait > 0) await new Promise(r => setTimeout(r, wait));
-    if (hud) { hud.finish(ok); await new Promise(r => setTimeout(r, 900)); }
+    if (hud && !question) { hud.finish(ok); await new Promise(r => setTimeout(r, 900)); }
     stopLearning();
-    learning = false; termIn.disabled = false; $('termSend').disabled = false; $('termFile').disabled = false; setTermImage(ok ? null : img); termIn.placeholder = 'Teach Kepler a new skill...';
+    learning = false; termIn.disabled = false; $('termSend').disabled = false; $('termFile').disabled = false;
     paintSkills();
-    tline('\n' + msg, ok ? 'p' : 'err');
+    if (question) {
+      // Kepler needs a detail before it can learn this well: show the question and wait for the answer.
+      showSession();
+      sessionLine('? Kepler asks: ' + question, 'ask');
+      tline('Type your answer and press Send, or type "cancel".', 'dim');
+      termIn.placeholder = 'Answer Kepler\'s question...';
+    } else {
+      if (ok) { pending = null; setTermImage(null); }
+      else { showSession(); if (pending && pending.rounds) pending.rounds--; else { pending = null; setTermImage(img); } }
+      termIn.placeholder = pending ? 'Answer Kepler\'s question...' : LEARN_PLACEHOLDER;
+      tline('\n' + msg, ok ? 'p' : 'err');
+    }
     termIn.focus();
   }
   $('termForm').onsubmit = e => { e.preventDefault(); learn(); };
@@ -1791,6 +1857,41 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     return out;
   }
   const onlyPics = code => { const ps = picParts(code); return ps.some(x => typeof x === 'object') && ps.every(x => typeof x === 'object' || !x.replace(/<\/?(p|div|figure|figcaption|br)[^>]*>/gi, '').trim()); };
+  // Light colour for structure in replies: list markers, "Label:" starts, `code`, **bold** and links.
+  // Built from text nodes only, so nothing in a reply can become HTML.
+  const INLINE_RE = /`([^`\n]+)`|\*\*([^*\n]+)\*\*|(https?:\/\/[^\s<>"')\]]+[^\s<>"')\].,;:!?])/g;
+  function inline(parent, text) {
+    let last = 0, m; INLINE_RE.lastIndex = 0;
+    while ((m = INLINE_RE.exec(text))) {
+      if (m.index > last) parent.appendChild(document.createTextNode(text.slice(last, m.index)));
+      let n;
+      if (m[1]) { n = document.createElement('span'); n.className = 'tx-code'; n.textContent = m[1]; }
+      else if (m[2]) { n = document.createElement('span'); n.className = 'tx-strong'; n.textContent = m[2]; }
+      else { n = document.createElement('a'); n.className = 'tx-link'; n.href = m[3]; n.target = '_blank'; n.rel = 'noopener noreferrer'; n.textContent = m[3]; }
+      parent.appendChild(n); last = INLINE_RE.lastIndex;
+    }
+    if (last < text.length) parent.appendChild(document.createTextNode(text.slice(last)));
+  }
+  function styleText(node) {
+    const text = node.dataset.raw ?? node.textContent;
+    node.textContent = '';
+    text.split('\n').forEach((line, i) => {
+      if (i) node.appendChild(document.createTextNode('\n'));
+      const mk = line.match(/^(\s*)([-•*]|\d{1,2}[.)])(\s+)/);
+      if (mk) {
+        node.appendChild(document.createTextNode(mk[1]));
+        const s = document.createElement('span'); s.className = 'tx-mark'; s.textContent = mk[2] === '*' ? '•' : mk[2];
+        node.append(s, document.createTextNode(mk[3]));
+        line = line.slice(mk[0].length);
+      }
+      const lb = line.match(/^([A-Z][A-Za-z0-9' -]{0,24}):(?=\s+\S)/);
+      if (lb && !/^https?$/i.test(lb[1])) {
+        const s = document.createElement('span'); s.className = 'tx-label'; s.textContent = lb[0];
+        node.appendChild(s); line = line.slice(lb[0].length);
+      }
+      inline(node, line);
+    });
+  }
   function genImage(prompt, given) {
     let seed = 0; for (const ch of prompt) seed = (seed * 31 + ch.charCodeAt(0)) % 1000000;
     const url = given || `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt.slice(0, 600))}?width=1024&height=1024&nologo=true&seed=${seed}`;
@@ -1816,7 +1917,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
           picParts(t).forEach(part => {
             if (typeof part === 'object') { el.appendChild(genImage(part.prompt, part.url)); return; }
             const tx = part.replace(/^\s*\n|\n\s*$/g, '');
-            if (tx.trim()) { const p = document.createElement('div'); p.className = 'msg-text'; p.textContent = tx; el.appendChild(p); }
+            if (tx.trim()) { const p = document.createElement('div'); p.className = 'msg-text'; p.dataset.raw = tx; p.textContent = tx; styleText(p); el.appendChild(p); }
           });
         }
       } else if (doc && isWeb(b)) {
@@ -1916,7 +2017,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
         if (caretOn && caretOn.classList.contains('msg-text')) caretOn.classList.add('caret');
         if (near) log.scrollTop = log.scrollHeight;
         if (target >= total || !el.isConnected) {
-          for (const u of units) { u.node.hidden = false; if (u.el) u.el.textContent = u.full; }
+          for (const u of units) { u.node.hidden = false; if (u.el) { u.el.textContent = u.full; if (u.el.classList.contains('msg-text') && el.classList.contains('ai')) styleText(u.el); } }
           el.querySelectorAll('.caret').forEach(c => c.classList.remove('caret'));
           resolve();
         } else requestAnimationFrame(step);
@@ -2016,15 +2117,17 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
 
   // ── Daily message limit. The chat function enforces it; this only shows it. ──
   const DAILY_LIMIT = 10; // keep in step with DAILY_LIMIT in the chat function
+  const LIMIT_ON = false;  // testing switch: keep in step with LIMIT_ON in the chat function
   let left = null, usageDay = null; // messages left today (null = not known yet)
   const utcDay = () => new Date().toISOString().slice(0, 10);
-  const outOfMessages = () => left === 0 && usageDay === utcDay();
+  const outOfMessages = () => LIMIT_ON && left === 0 && usageDay === utcDay();
   function resetIn() {
     const now = new Date(), next = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
     const mins = Math.max(1, Math.ceil((next - now) / 60000)), h = Math.floor(mins / 60), m = mins % 60;
     return h ? `${h} h ${m} min` : `${m} min`;
   }
   async function loadUsage() {
+    if (!LIMIT_ON) { left = null; paintLeft(); return; }
     const day = utcDay();
     const { data, error } = await sb.from('usage').select('count').eq('day', day).maybeSingle();
     if (error) { left = null; paintLeft(); return; }
@@ -2033,7 +2136,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
   function paintLeft() {
     const n = $('leftNote');
     if (usageDay !== utcDay()) { left = null; usageDay = null; }
-    n.hidden = left === null || left > 3;
+    n.hidden = !LIMIT_ON || left === null || left > 3;
     n.classList.toggle('out', left === 0);
     n.textContent = left === 0 ? 'No messages left today' : `${left} left today`;
   }
