@@ -316,7 +316,32 @@ body{
 .term-page[hidden]{display:none}
 .term-out{flex:1;min-height:0;overflow-y:auto;white-space:pre-wrap;word-break:break-word;padding-bottom:12px;scrollbar-width:thin;scrollbar-color:#444 transparent}
 .term-out .p{color:#4ade80}.term-out .err{color:#f87171}.term-out .dir{color:#60a5fa}.term-out .dim{color:#a3a3a3}
-.term-video{position:absolute;left:0;right:0;top:0;bottom:calc(max(16px,env(safe-area-inset-bottom)) + 60px);width:100%;height:calc(100% - max(16px,env(safe-area-inset-bottom)) - 60px);object-fit:contain;background:#000;z-index:0}
+.learn-stage{position:absolute;left:0;right:0;top:0;bottom:calc(max(16px,env(safe-area-inset-bottom)) + 60px);z-index:0;display:flex;gap:14px;
+  padding:max(16px,env(safe-area-inset-top)) 16px 0;background:#000;color:#d4d4d4;font:11px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.term-video{flex:none;height:100%;aspect-ratio:1080/1440;max-width:calc(100% - 32px);object-fit:contain;background:#000;border:1px solid #1f1f1f}
+.lh-side{flex:1;min-width:0;container-type:inline-size;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+@container (max-width:150px){.lh-side>*{display:none}}
+.lh-box{border:1px solid #262626;background:#050505;padding:10px 12px;min-height:0;display:flex;flex-direction:column;gap:6px}
+.lh-box.grow{flex:1;overflow:hidden}
+.lh-t{display:flex;justify-content:space-between;gap:8px;color:#737373;font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+.lh-t b{color:#ec4899;font-weight:500}
+.lh-big{font-size:28px;line-height:1.1;color:#fff;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.lh-name{font-size:15px;color:#fff;word-break:break-word}
+.lh-bar{height:4px;background:#1f1f1f;position:relative;overflow:hidden}
+.lh-bar i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#a855f7,#ec4899);transition:width .25s linear}
+.lh-row{display:grid;grid-template-columns:3.2em 1fr 3.4em;align-items:center;gap:8px;color:#a3a3a3;font-variant-numeric:tabular-nums}
+.lh-row .lh-bar{height:6px}
+.lh-row span:last-child{text-align:right;color:#e5e5e5}
+.lh-log{flex:1;min-height:0;overflow:hidden;-webkit-mask-image:linear-gradient(transparent,#000 40px);mask-image:linear-gradient(transparent,#000 40px);display:flex;flex-direction:column;justify-content:flex-end;color:#a3a3a3;white-space:nowrap}
+.lh-log div:last-child{color:#fff}
+.lh-log em{font-style:normal;color:#ec4899}
+.lh-cv{display:block;width:100%;height:70px}
+.lh-cv.tall{height:110px}
+.lh-kv{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-variant-numeric:tabular-nums}
+.lh-kv span:nth-child(odd){color:#737373}
+.lh-kv span:nth-child(even){color:#fff;text-align:right}
+@media (max-width:899px){.lh-side{display:none}.learn-stage{justify-content:center}}
+@media (prefers-reduced-motion:reduce){.lh-bar i{transition:none}}
 .term-page.playing .term-out{visibility:hidden}
 .term-input::placeholder{color:#737373}
 .term-send:disabled{opacity:.5;cursor:default}
@@ -1325,16 +1350,89 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     });
     termOut.scrollTop = termOut.scrollHeight;
   }
-  function playLearning() {
-    lvideo = document.createElement('video');
-    Object.assign(lvideo, { src: 'assets/learning.mp4', loop: true, autoplay: true, playsInline: true, muted: true, preload: 'auto', disablePictureInPicture: true });
-    lvideo.className = 'term-video';
-    $('termPage').prepend(lvideo); $('termPage').classList.add('playing');
-    lvideo.play().catch(() => {});
+  // While learning: the video in the middle, with live HUD panels drawn at screen resolution on either side.
+  let hud = null;
+  function playLearning(topic) {
+    const stage = document.createElement('div'); stage.className = 'learn-stage'; stage.setAttribute('aria-hidden', 'true');
+    stage.innerHTML = `
+      <div class="lh-side">
+        <div class="lh-box"><div class="lh-t">Skill <b>acquiring</b></div><div class="lh-name"></div><div class="lh-kv"><span>elapsed</span><span data-k="t">T+00.00</span><span>session</span><span>${Math.random().toString(16).slice(2, 10)}</span></div></div>
+        <div class="lh-box"><div class="lh-t">Progress <span data-k="phase">sense</span></div><div class="lh-big" data-k="pct">0.0%</div><div class="lh-bar"><i data-k="bar" style="width:0"></i></div></div>
+        <div class="lh-box"><div class="lh-t">Loss <span data-k="loss">2.400</span></div><canvas class="lh-cv" data-c="loss"></canvas></div>
+        <div class="lh-box"><div class="lh-t">Memory <span>write</span></div><canvas class="lh-cv tall" data-c="grid"></canvas></div>
+        <div class="lh-box grow"><div class="lh-t">Token stream</div><div class="lh-log" data-k="tok"></div></div>
+      </div>
+      <video class="term-video" src="assets/learning.mp4" loop autoplay muted playsinline preload="auto" disablepictureinpicture></video>
+      <div class="lh-side">
+        <div class="lh-box"><div class="lh-t">Throughput <span data-k="tps">0 tok/s</span></div><canvas class="lh-cv" data-c="wave"></canvas></div>
+        <div class="lh-box"><div class="lh-t">Layers <span>grad norm</span></div><div data-k="layers"></div></div>
+        <div class="lh-box"><div class="lh-t">Model</div><div class="lh-kv"><span>params</span><span data-k="params">0</span><span>attention</span><span data-k="att">0.00</span><span>recall</span><span data-k="rec">0.00</span><span>epoch</span><span data-k="ep">000/120</span></div></div>
+        <div class="lh-box grow"><div class="lh-t">Event stream</div><div class="lh-log" data-k="ev"></div></div>
+      </div>`;
+    stage.querySelector('.lh-name').textContent = topic;
+    $('termPage').prepend(stage); $('termPage').classList.add('playing');
+    lvideo = stage.querySelector('video'); lvideo.muted = true; lvideo.play().catch(() => {});
+    const q = k => stage.querySelector(`[data-k="${k}"]`), cv = k => stage.querySelector(`[data-c="${k}"]`);
+    const layers = q('layers'), LN = 8, lv = [];
+    for (let n = 0; n < LN; n++) { const r = document.createElement('div'); r.className = 'lh-row'; r.innerHTML = `<span>L${String(n * 3 + 1).padStart(2, '0')}</span><div class="lh-bar"><i></i></div><span>0.00</span>`; layers.appendChild(r); lv.push(Math.random()); }
+    const PHASES = ['sense', 'attend', 'store', 'link', 'recall', 'build', 'focus', 'converge'];
+    const WORDS = topic.toLowerCase().split(/\s+/).filter(Boolean).concat(['context', 'rule', 'step', 'example', 'pattern', 'avoid', 'when', 'because', 'output', 'check']);
+    const EVENTS = ['ingest', 'embed', 'attend', 'consolidate', 'write', 'recall', 'link', 'prune', 'evaluate', 'checkpoint'];
+    const t0 = performance.now(), lossHist = [], gridCells = Array.from({ length: 16 * 8 }, () => Math.random());
+    let pct = 0, done = false, raf = 0, lastText = 0, lastLog = 0, step = 0;
+    function sizeCanvas(c) { const r = c.getBoundingClientRect(), d = devicePixelRatio || 1; const w = Math.round(r.width * d), h = Math.round(r.height * d);
+      if (c.width !== w || c.height !== h) { c.width = w; c.height = h; } const x = c.getContext('2d'); x.setTransform(d, 0, 0, d, 0, 0); return [x, r.width, r.height]; }
+    function pushLine(el, html, max) { const d = document.createElement('div'); d.innerHTML = html; el.appendChild(d); while (el.children.length > max) el.firstChild.remove(); }
+    function frame(now) {
+      const t = (now - t0) / 1000;
+      pct = done ? Math.min(100, pct + 6) : pct + (95 - pct) * 0.005;
+      const loss = 0.12 + 2.3 * Math.exp(-pct / 28) + Math.sin(t * 7) * 0.03 + (Math.random() - 0.5) * 0.04;
+      // Loss sparkline
+      lossHist.push(loss); if (lossHist.length > 160) lossHist.shift();
+      { const c = cv('loss'), [x, w, h] = sizeCanvas(c); x.clearRect(0, 0, w, h); x.strokeStyle = '#1f1f1f'; x.lineWidth = 1;
+        for (let g = 1; g < 4; g++) { x.beginPath(); x.moveTo(0, Math.round(h * g / 4) + .5); x.lineTo(w, Math.round(h * g / 4) + .5); x.stroke(); }
+        x.beginPath(); lossHist.forEach((v, n) => { const px = n / 159 * w, py = h - 4 - Math.min(1, v / 2.6) * (h - 8); n ? x.lineTo(px, py) : x.moveTo(px, py); });
+        x.strokeStyle = '#ec4899'; x.lineWidth = 1.5; x.stroke(); }
+      // Throughput wave
+      { const c = cv('wave'), [x, w, h] = sizeCanvas(c); x.clearRect(0, 0, w, h);
+        for (const [col, amp, f, ph] of [['#a855f7', .32, 9, 0], ['#e5e5e5', .22, 14, 1.3]]) { x.beginPath();
+          for (let px = 0; px <= w; px += 2) { const u = px / w; const py = h / 2 + Math.sin(u * f + t * 3 + ph) * h * amp * (0.6 + 0.4 * Math.sin(u * 3 + t)) + Math.sin(u * 47 + t * 9) * 2;
+            px ? x.lineTo(px, py) : x.moveTo(px, py); }
+          x.strokeStyle = col; x.lineWidth = 1.2; x.stroke(); } }
+      // Memory grid
+      { const c = cv('grid'), [x, w, h] = sizeCanvas(c); x.clearRect(0, 0, w, h); const cols = 16, rows = 8, gap = 2, cw = (w - gap * (cols - 1)) / cols, ch = (h - gap * (rows - 1)) / rows;
+        for (let n = 0; n < gridCells.length; n++) { if (Math.random() < 0.04) gridCells[n] = Math.random(); const v = gridCells[n];
+          x.fillStyle = v > 0.85 ? '#ec4899' : `rgba(229,229,229,${0.06 + v * 0.45})`; x.fillRect((n % cols) * (cw + gap), Math.floor(n / cols) * (ch + gap), cw, ch); } }
+      if (now - lastText > 110) {
+        lastText = now;
+        q('t').textContent = 'T+' + t.toFixed(2).padStart(5, '0');
+        q('pct').textContent = pct.toFixed(1) + '%'; q('bar').style.width = pct + '%';
+        q('phase').textContent = done ? 'complete' : PHASES[Math.min(PHASES.length - 1, Math.floor(pct / 100 * PHASES.length))];
+        q('loss').textContent = loss.toFixed(3);
+        q('tps').textContent = Math.round(1800 + Math.sin(t * 2) * 400 + Math.random() * 200) + ' tok/s';
+        q('params').textContent = Math.round(30284 + pct * 1240 + Math.random() * 40).toLocaleString();
+        q('att').textContent = (0.4 + pct / 200 + Math.random() * 0.03).toFixed(2);
+        q('rec').textContent = (0.2 + pct / 140 + Math.random() * 0.03).toFixed(2);
+        q('ep').textContent = String(Math.min(120, Math.round(pct * 1.2))).padStart(3, '0') + '/120';
+        [...layers.children].forEach((r, n) => { lv[n] = Math.max(0.04, Math.min(1, lv[n] + (Math.random() - 0.5) * 0.18)); r.querySelector('i').style.width = (lv[n] * 100) + '%'; r.lastChild.textContent = (lv[n] * 2).toFixed(2); });
+      }
+      if (now - lastLog > 140) {
+        lastLog = now; step++;
+        const w = WORDS[Math.floor(Math.random() * WORDS.length)];
+        pushLine(q('tok'), `${String(step).padStart(5, '0')} <em>${tesc(w)}</em> ${Math.random().toString(16).slice(2, 8)} ${(Math.random()).toFixed(3)}`, 40);
+        if (step % 3 === 0) pushLine(q('ev'), `${t.toFixed(2).padStart(6, '0')} ${EVENTS[Math.floor(Math.random() * EVENTS.length)]} L=${loss.toFixed(3)}`, 40);
+      }
+      raf = requestAnimationFrame(frame);
+    }
+    raf = requestAnimationFrame(frame);
+    hud = { stage, finish(ok) { done = true; q('phase').textContent = ok ? 'complete' : 'failed'; }, stop() { cancelAnimationFrame(raf); } };
   }
+  const tesc = t => String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
   function stopLearning() {
-    if (!lvideo) return;
-    lvideo.pause(); lvideo.removeAttribute('src'); lvideo.load(); lvideo.remove(); lvideo = null;
+    if (!hud) return;
+    hud.stop();
+    if (lvideo) { lvideo.pause(); lvideo.removeAttribute('src'); lvideo.load(); lvideo = null; }
+    hud.stage.remove(); hud = null;
     $('termPage').classList.remove('playing');
   }
   async function learn() {
@@ -1345,7 +1443,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     if (skills.length >= SKILLS_MAX) { tline(`Kepler can hold ${SKILLS_MAX} skills. Forget one to learn another.`, 'err'); return; }
     learning = true; termIn.value = ''; termIn.disabled = true; $('termSend').disabled = true; termIn.placeholder = 'Kepler is learning...';
     tline('\n> ' + topic);
-    playLearning();
+    playLearning(topic);
     const started = Date.now();
     let msg = '', ok = false;
     try {
@@ -1376,6 +1474,7 @@ body.booting .vid-toggle,body.signed-out .vid-toggle{visibility:hidden}
     // Let the learning video run for at least a few seconds so it reads as a learning session.
     const wait = 4000 - (Date.now() - started);
     if (wait > 0) await new Promise(r => setTimeout(r, wait));
+    if (hud) { hud.finish(ok); await new Promise(r => setTimeout(r, 900)); }
     stopLearning();
     learning = false; termIn.disabled = false; $('termSend').disabled = false; termIn.placeholder = 'Teach Kepler a new skill...';
     paintSkills();
