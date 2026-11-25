@@ -77,8 +77,37 @@ body:not(.in) .side{display:none}
 .opt .k{flex:none;width:14ch;font-weight:700}
 .help-row{display:flex;gap:2ch}
 .help-row .k{flex:none;width:18ch;font-weight:700}
-.stay-opt{padding:0 .3ch}
-.stay-opt:hover,.stay-opt.on{background:var(--fg);color:var(--bg)}
+
+/* Password screen */
+.lock{position:fixed;inset:0;z-index:50;overflow-y:auto;background:var(--bg);color:var(--fg);display:flex;justify-content:center;
+  padding:max(48px,env(safe-area-inset-top)) 16px max(32px,env(safe-area-inset-bottom));
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:16px}
+.lock-in{width:100%;max-width:370px;margin:auto 0;display:flex;flex-direction:column;align-items:center;text-align:center}
+.slab{font-family:"Rockwell","Roboto Slab","Zilla Slab","Museo Slab",Georgia,"Times New Roman",serif;font-weight:700}
+.eye{display:flex;flex-direction:column;align-items:center;line-height:1;padding-bottom:8px;border-bottom:2px solid var(--fg);margin-bottom:28px}
+.eye span{display:block}
+.eye .r1{font-size:56px;margin-bottom:12px}
+.eye .r2{font-size:34px;letter-spacing:.45em;margin-right:-.45em;margin-bottom:12px}
+.eye .r3{font-size:22px;letter-spacing:.6em;margin-right:-.6em}
+.lock h1{font-size:clamp(28px,7vw,34px);line-height:1.15;margin-bottom:10px}
+.lock-sub{margin-bottom:32px}
+.lock-card{width:100%;border:1px solid var(--fg);padding:22px 18px 20px;text-align:left}
+.lock-card label.t{display:block;font-weight:600;margin-bottom:10px}
+.lock-card input{width:100%;height:46px;padding:0 12px;border:1px solid var(--fg);outline:none;font-size:16px;caret-color:var(--fg)}
+.lock-card input:focus{box-shadow:0 0 0 1px var(--fg)}
+.lock-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:16px 0}
+.lock-row select{appearance:none;-webkit-appearance:none;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--fg);
+  height:36px;padding:0 30px 0 12px;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,#fff 50%),linear-gradient(135deg,#fff 50%,transparent 50%);
+  background-position:calc(100% - 15px) 16px,calc(100% - 10px) 16px;background-size:5px 5px;background-repeat:no-repeat}
+.lock-row select option{background:var(--bg);color:var(--fg)}
+.lock-go{width:100%;height:50px;background:var(--fg);color:var(--bg);font-weight:600;font-size:17px;text-align:center}
+.lock-go:hover{background:var(--bg);color:var(--fg);box-shadow:inset 0 0 0 1px var(--fg)}
+.lock-go:disabled{cursor:default}
+.lock-err{margin-top:10px;font-weight:600}
+.lock-err::before{content:"! "}
+.lock-note{margin-top:16px;font-size:14px;line-height:1.5}
+.lock-legal{margin-top:24px;font-size:13px;display:flex;gap:16px}
 .link-btn{text-decoration:underline;text-underline-offset:3px}
 .link-btn:hover{background:var(--fg);color:var(--bg);text-decoration:none}
 
@@ -152,7 +181,6 @@ body:not(.in) .side{display:none}
       <form class="cmd" id="form" autocomplete="off" hidden>
         <label class="ps" id="ps1" for="box">&gt;</label>
         <textarea id="box" rows="1" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
-        <input id="pw" type="password" hidden autocomplete="current-password" aria-labelledby="ps1">
       </form>
       <input type="file" id="file" accept=".txt,.md,.csv,.json,.html,.css,.js,.py,text/*" tabindex="-1" aria-hidden="true">
     </main>
@@ -163,6 +191,27 @@ body:not(.in) .side{display:none}
     <a href="privacy.html">privacy</a><a href="terms.html">terms</a><a href="credits.html">credits</a>
     <span id="clock" class="only-wide" aria-hidden="true"></span>
   </footer>
+</div>
+
+<div class="lock" id="lock" role="dialog" aria-modal="true" aria-labelledby="lockTitle" hidden>
+  <div class="lock-in">
+    <div class="eye slab" aria-hidden="true"><span class="r1">K</span><span class="r2">EP</span><span class="r3">LER</span></div>
+    <h1 class="slab" id="lockTitle">Kepler is private</h1>
+    <p class="lock-sub">Enter the password to continue.</p>
+    <form class="lock-card" id="lockForm" autocomplete="on">
+      <input type="text" name="username" autocomplete="username" value="kepler" hidden>
+      <label class="t" for="lockPw">Password</label>
+      <input id="lockPw" name="password" type="password" autocomplete="current-password" required>
+      <p class="lock-err" id="lockErr" role="alert" hidden></p>
+      <div class="lock-row">
+        <label for="lockStay">Stay signed in for</label>
+        <select id="lockStay"></select>
+      </div>
+      <button type="submit" class="lock-go" id="lockGo">Sign in</button>
+      <p class="lock-note">Chats are saved on the server and visible to everyone with the password.</p>
+    </form>
+    <nav class="lock-legal" aria-label="Legal"><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="credits.html">Credits</a></nav>
+  </div>
 </div>
 
 <script>
@@ -178,6 +227,7 @@ body:not(.in) .side{display:none}
   const STAY = [
     ['visit', 'this visit only', 0],
     ['1h', '1 hour', 60],
+    ['5h', '5 hours', 300],
     ['1d', '1 day', 1440],
     ['7d', '7 days', 10080],
     ['30d', '30 days', 43200],
@@ -199,13 +249,13 @@ body:not(.in) .side{display:none}
     removeItem: k => { mem.delete(k); safe(() => localStorage.removeItem(k)); },
   };
   let stay = safe(() => localStorage.getItem(STAY_KEY), null);
-  if (!STAY.some(x => x[0] === stay)) stay = 'visit';
+  if (!STAY.some(x => x[0] === stay)) stay = '5h';
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: { storage: authStorage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
   });
 
   const $ = id => document.getElementById(id);
-  const term = $('term'), out = $('out'), form = $('form'), box = $('box'), pw = $('pw'), ps1 = $('ps1');
+  const term = $('term'), out = $('out'), form = $('form'), box = $('box'), ps1 = $('ps1');
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const sleep = ms => new Promise(r => setTimeout(r, reduceMotion.matches ? 0 : ms));
 
@@ -269,21 +319,18 @@ body:not(.in) .side{display:none}
     const n = (profile.name || '').trim() || 'user';
     return n.toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-|-$/g, '').slice(0, 16) || 'user';
   };
-  const promptText = () => state === 'pass' ? 'password:' : `${handle()}@kepler:~$`;
+  const promptText = () => `${handle()}@kepler:~$`;
   function setPrompt() {
-    const secret = state === 'pass';
     ps1.textContent = promptText();
-    box.hidden = secret; pw.hidden = !secret;
-    ps1.htmlFor = secret ? 'pw' : 'box';
-    box.setAttribute('aria-label', state === 'chat' ? 'Message Kepler AI, or type a command' : promptText());
-    form.hidden = busy || state === 'boot';
+    box.setAttribute('aria-label', 'Message Kepler AI, or type a command');
+    form.hidden = busy || state !== 'chat';
     paintStatus();
     if (!form.hidden) { scroll(); focusInput(); }
   }
   function focusInput() {
     if (form.hidden) return;
-    if (matchMedia('(hover: none)').matches && document.activeElement !== box && document.activeElement !== pw && state === 'chat') return;
-    (pw.hidden ? box : pw).focus({ preventScroll: true });
+    if (matchMedia('(hover: none)').matches && document.activeElement !== box) return;
+    box.focus({ preventScroll: true });
   }
   function grow() { box.style.height = 'auto'; box.style.height = box.scrollHeight + 'px'; }
   box.addEventListener('input', grow);
@@ -319,10 +366,6 @@ body:not(.in) .side{display:none}
       else if (hits.length) line(hits.join('   '));
     }
   });
-  pw.addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); submit(); }
-    if (e.key === 'Escape') { e.preventDefault(); pw.value = ''; }
-  });
   form.addEventListener('submit', e => { e.preventDefault(); submit(); });
   // Clicking anywhere in the terminal (without selecting text) puts the cursor back on the command line.
   term.addEventListener('click', e => {
@@ -331,15 +374,12 @@ body:not(.in) .side{display:none}
   });
 
   async function submit() {
-    if (busy || state === 'boot') return;
-    const secret = !pw.hidden;
-    const raw = secret ? pw.value : box.value;
-    const v = raw.trim();
-    pw.value = ''; box.value = ''; grow();
-    echo(promptText(), secret ? '•'.repeat(Math.min(raw.length, 16)) : raw);
-    if (!secret && v) { if (hist[hist.length - 1] !== raw) hist.push(raw); hi = hist.length; }
-    if (state === 'chat') return v.startsWith('/') ? command(v) : (v && send(v));
-    if (state === 'pass') return raw ? unlock(raw) : line('enter the password.', 'err');
+    if (busy || state !== 'chat') return;
+    const raw = box.value, v = raw.trim();
+    box.value = ''; grow();
+    echo(promptText(), raw);
+    if (v) { if (hist[hist.length - 1] !== raw) hist.push(raw); hi = hist.length; }
+    return v.startsWith('/') ? command(v) : (v && send(v));
   }
 
   // ── Boot and login ──
@@ -353,46 +393,38 @@ body:not(.in) .side{display:none}
   const booted = bootSeq();
 
   // ── Password screen ──
+  const lockEl = $('lock'), lockPw = $('lockPw'), lockErr = $('lockErr'), lockGo = $('lockGo'), lockStay = $('lockStay');
+  lockStay.innerHTML = STAY.map(([k, label]) => `<option value="${k}">${label}</option>`).join('');
+  lockStay.value = stay;
+  lockStay.onchange = () => { stay = lockStay.value; safe(() => localStorage.setItem(STAY_KEY, stay)); };
   function showLock() {
     state = 'pass';
     document.body.classList.remove('in');
-    line();
-    line('ACCESS RESTRICTED :: enter the password to continue', 'b');
-    const row = document.createElement('div'); row.className = 'ln stay';
-    row.setAttribute('role', 'radiogroup'); row.setAttribute('aria-label', 'Stay signed in for');
-    row.append('stay signed in for: ');
-    for (const [k, label] of STAY) {
-      const b = button('[' + label + ']', () => pickStay(k), 'stay-opt');
-      b.setAttribute('role', 'radio'); b.dataset.k = k;
-      row.append(b, ' ');
-    }
-    out.appendChild(row);
-    paintStay();
     setPrompt();
+    lockErr.hidden = true; lockPw.value = '';
+    lockEl.hidden = false;
+    $('side').inert = true; document.querySelector('.app').inert = true;
+    lockPw.focus();
   }
-  function pickStay(k) {
-    stay = k; safe(() => localStorage.setItem(STAY_KEY, k));
-    paintStay(); focusInput();
+  function hideLock() {
+    lockEl.hidden = true;
+    document.querySelector('.app').inert = false; closeSide();
   }
-  function paintStay() {
-    document.querySelectorAll('.stay-opt').forEach(b => {
-      const on = b.dataset.k === stay;
-      b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on));
-    });
-  }
+  $('lockForm').addEventListener('submit', e => { e.preventDefault(); if (state === 'pass' && !busy) unlock(lockPw.value); });
   async function unlock(password) {
+    if (!password) { lockErr.textContent = 'Enter the password.'; lockErr.hidden = false; lockPw.focus(); return; }
     const [, label, mins] = STAY.find(x => x[0] === stay);
-    setBusy(true);
-    const stop = spinner(out, 'authenticating');
+    busy = true; lockGo.disabled = true; lockGo.textContent = 'Signing in…'; lockErr.hidden = true;
     // Kept logins are saved in this browser until the chosen time; "this visit only" stays in memory.
     safe(() => { if (mins) localStorage.setItem(UNTIL, String(Date.now() + mins * 60000)); else localStorage.removeItem(UNTIL); });
+    let ok = false;
     try {
       const { error } = await sb.auth.signInWithPassword({ email: SITE_EMAIL, password });
       if (error) {
         safe(() => localStorage.removeItem(UNTIL));
-        line(/invalid/i.test(error.message) ? 'access denied: wrong password.' : error.message, 'err');
+        lockErr.textContent = /invalid/i.test(error.message) ? 'Wrong password.' : error.message;
       } else {
-        state = 'boot';
+        ok = true; state = 'boot';
         // Supabase ends this login at the chosen time too ("this visit only" ends after 12 hours at most).
         sb.rpc('kepler_set_session_expiry', { p_minutes: mins || 720 }).then(() => {});
         line(`access granted. signed in for ${label}.`, 'ok');
@@ -400,8 +432,12 @@ body:not(.in) .side{display:none}
       }
     } catch {
       safe(() => localStorage.removeItem(UNTIL));
-      line('could not reach the sign-in service. check your connection and try again.', 'err');
-    } finally { stop(); setBusy(false); }
+      lockErr.textContent = 'Could not reach the server. Check your connection and try again.';
+    } finally {
+      busy = false; lockGo.disabled = false; lockGo.textContent = 'Sign in';
+      if (ok) { lockPw.value = ''; hideLock(); }
+      else { lockErr.hidden = false; lockPw.select(); }
+    }
   }
   // Lock the site when the chosen time runs out, even if the page is still open.
   let lockT = 0;
@@ -929,10 +965,8 @@ body:not(.in) .side{display:none}
       const was = lastUserId;
       lastUserId = null; chats = []; current = null; renderSide();
       clearTimeout(lockT);
-      booted.then(() => {
-        if (was) { out.innerHTML = ''; banner(); line('locked.', 'ok'); }
-        showLock();
-      });
+      if (was) { out.innerHTML = ''; banner(); line('locked.', 'ok'); }
+      showLock();
       return;
     }
     if (user.id !== lastUserId) {

@@ -21,7 +21,7 @@ set encrypted_password = extensions.crypt('YOUR PASSWORD HERE', extensions.gen_s
 where email = 'kepler@example.com';
 ```
 
-**Stay signed in for:** the password screen offers this visit only, 1 hour, 1 day, 7 days or 30 days. The site forgets the login when the time runs out, and Supabase ends the session at the same time (`kepler_set_session_expiry` in `supabase/migrations/20261125233000_session_expiry.sql`).
+**Stay signed in for:** the password screen offers this visit only, 1 hour, 5 hours (default), 1 day, 7 days or 30 days. The site forgets the login when the time runs out, and Supabase ends the session at the same time (`kepler_set_session_expiry` in `supabase/migrations/20261125233000_session_expiry.sql`).
 
 ## Legal pages
 
