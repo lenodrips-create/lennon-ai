@@ -34,13 +34,13 @@ img{display:block}
 .app{position:fixed;inset:0;display:flex;flex-direction:column;
   padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 
-/* Top and bottom bars: inverted, like a tmux status line */
-.bar{flex:none;display:flex;align-items:center;gap:1ch;height:var(--bar);padding:0 1ch;background:var(--fg);color:var(--bg);white-space:nowrap;overflow:hidden}
+/* Top and bottom bars: black with white text */
+.bar{flex:none;display:flex;align-items:center;gap:1ch;height:var(--bar);padding:0 1ch;background:var(--bg);color:var(--fg);white-space:nowrap;overflow:hidden}
 .bar .grow{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .bar b{font-weight:700}
 .bar button,.bar a{text-decoration:none;padding:0 .5ch;line-height:var(--bar)}
-.bar button:hover,.bar a:hover{background:var(--bg);color:var(--fg)}
-.bar :focus-visible{outline:1px dashed var(--bg);outline-offset:-3px}
+.bar button:hover,.bar a:hover{background:var(--fg);color:var(--bg)}
+.bar :focus-visible{outline:1px dashed var(--fg);outline-offset:-3px}
 body:not(.in) .only-in{display:none!important}
 .only-narrow{display:none}
 
