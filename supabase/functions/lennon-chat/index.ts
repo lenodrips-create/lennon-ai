@@ -83,15 +83,9 @@ const codeSystem = (name: string) =>
   `For questions that don't need a page (explaining code, fixing a bug, other languages), answer briefly and put any code in a code block with a language tag. ` +
   `Outside code blocks, write plain text without markdown headings, bold or tables.`;
 
-// Free messages per account per day (UTC). The website shows the same number: keep DAILY_LIMIT in index.html in step.
-const DAILY_LIMIT = 10;
-// Testing switch: false turns the daily limit off (no counting, no blocking). Set back to true to limit again,
-// and set LIMIT_ON in index.html to match.
-const LIMIT_ON = false;
-
-const MAX_MESSAGES = 30;
-const MAX_CHARS = 4000;          // per user message
-const MAX_REPLY_CHARS = 60000;   // per earlier assistant reply (Kepler Code replies hold whole files)
+// No daily message limit. Long chats are trimmed to their newest messages instead of being refused.
+const MAX_MESSAGES = 60;         // newest messages sent to Groq
+const MAX_CHARS = 32000;         // per message
 const MAX_TOTAL_CHARS = 150000;  // whole conversation sent to Groq
 const MAX_IMAGE_CHARS = 5_400_000; // one image per request, as a base64 data URL (Groq allows up to 4 MB)
 const IMAGE_RE = /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/;
@@ -169,53 +163,20 @@ Deno.serve(async (req) => {
   }
 
   if (
-    !Array.isArray(messages) || messages.length === 0 || messages.length > MAX_MESSAGES ||
-    !messages.every((m) =>
-      (m?.role === "user" || m?.role === "assistant") &&
-      typeof m.content === "string" && m.content.length <= (m.role === "user" ? MAX_CHARS : MAX_REPLY_CHARS)
-    ) ||
-    messages.reduce((n, m) => n + m.content.length, 0) > MAX_TOTAL_CHARS
+    !Array.isArray(messages) || messages.length === 0 ||
+    !messages.every((m) => (m?.role === "user" || m?.role === "assistant") && typeof m.content === "string")
   ) {
-    return json({ error: "That chat is too long. Start a new chat." }, 400, origin);
+    return json({ error: "Bad request." }, 400, origin);
   }
   // Forward only role and text, so a client cannot slip extra fields (tool calls, names) through to Groq.
-  messages = messages.map((m) => ({ role: m.role, content: m.content }));
+  // Very long messages are cut, and the oldest messages are dropped until the chat fits.
+  messages = messages.slice(-MAX_MESSAGES).map((m) => ({ role: m.role, content: m.content.slice(0, MAX_CHARS) }));
+  let total = messages.reduce((n, m) => n + m.content.length, 0);
+  while (messages.length > 1 && total > MAX_TOTAL_CHARS) total -= messages.shift()!.content.length;
+  while (messages.length > 1 && messages[0].role !== "user") messages.shift();
   if (image && messages[messages.length - 1].role !== "user") return json({ error: "Bad request." }, 400, origin);
 
-  // Daily limit: take one message now (atomically, as the user), give it back if no reply comes.
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const publicKey = Deno.env.get("SUPABASE_ANON_KEY") || "sb_publishable_KGnwpyai1gG2rHBj6XSnmA_VlK-Yc8a";
-  const rpc = (fn: string, body: unknown, bearer: string, apikey: string) =>
-    fetch(`${supabaseUrl}/rest/v1/rpc/${fn}`, {
-      method: "POST",
-      headers: { apikey, Authorization: `Bearer ${bearer}`, "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-  let remaining: number | null = null;
-  if (LIMIT_ON) {
-    const took = await rpc("kepler_take_message", { p_limit: DAILY_LIMIT }, token, publicKey);
-    if (!took.ok) {
-      console.error(`usage take failed ${took.status}: ${(await took.text()).slice(0, 200)}`);
-      return json({ error: "Kepler AI is not available right now. Try again later." }, 500, origin);
-    }
-    remaining = Number(await took.json());
-  }
-  if (remaining !== null && remaining < 0) {
-    return json({
-      error: `You've used all ${DAILY_LIMIT} of today's free messages. Buy credit to keep chatting, or come back tomorrow.`,
-      code: "limit", limit: DAILY_LIMIT, remaining: 0,
-    }, 429, origin);
-  }
-  const refund = async () => {
-    if (!LIMIT_ON) return;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!serviceKey || !uid) { console.error("usage refund skipped: no service key or user id"); return; }
-    const r = await rpc("kepler_refund_message", { p_user: uid }, serviceKey, serviceKey).catch(() => null);
-    if (!r?.ok) console.error(`usage refund failed ${r?.status}`);
-  };
-  const result = await reply();
-  if (result.status !== 200) await refund();
-  return result;
+  return await reply();
 
   async function reply(): Promise<Response> {
     const sys = { role: "system", content: code ? codeSystem(picked.name) : system(picked.name, picked.style) };
@@ -245,7 +206,7 @@ Deno.serve(async (req) => {
         if (res.ok) {
           const data = await res.json();
           const reply = data?.choices?.[0]?.message?.content ?? "";
-          if (reply.trim()) return json({ reply, remaining, limit: DAILY_LIMIT }, 200, origin);
+          if (reply.trim()) return json({ reply }, 200, origin);
           console.error(`groq ${id}: empty reply`, JSON.stringify(payload).slice(0, 120));
           continue;
         }

@@ -84,11 +84,7 @@ body:not(.in) .side{display:none}
   font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:16px}
 .lock-in{width:100%;max-width:370px;margin:auto 0;display:flex;flex-direction:column;align-items:center;text-align:center}
 .slab{font-family:"Rockwell","Roboto Slab","Zilla Slab","Museo Slab",Georgia,"Times New Roman",serif;font-weight:700}
-.eye{display:flex;flex-direction:column;align-items:center;line-height:1;padding-bottom:8px;border-bottom:2px solid var(--fg);margin-bottom:28px}
-.eye span{display:block}
-.eye .r1{font-size:56px;margin-bottom:12px}
-.eye .r2{font-size:34px;letter-spacing:.45em;margin-right:-.45em;margin-bottom:12px}
-.eye .r3{font-size:22px;letter-spacing:.6em;margin-right:-.6em}
+.wordmark{font-size:44px;line-height:1;letter-spacing:.08em;margin-bottom:28px}
 .lock h1{font-size:clamp(28px,7vw,34px);line-height:1.15;margin-bottom:10px}
 .lock-sub{margin-bottom:32px}
 .lock-card{width:100%;border:1px solid var(--fg);padding:22px 18px 20px;text-align:left}
@@ -195,7 +191,7 @@ body:not(.in) .side{display:none}
 
 <div class="lock" id="lock" role="dialog" aria-modal="true" aria-labelledby="lockTitle" hidden>
   <div class="lock-in">
-    <div class="eye slab" aria-hidden="true"><span class="r1">K</span><span class="r2">EP</span><span class="r3">LER</span></div>
+    <div class="wordmark slab" aria-hidden="true">KEPLER</div>
     <h1 class="slab" id="lockTitle">Kepler is private</h1>
     <p class="lock-sub">Enter the password to continue.</p>
     <form class="lock-card" id="lockForm" autocomplete="on">
@@ -219,7 +215,7 @@ body:not(.in) .side{display:none}
   const SUPABASE_URL = 'https://zxvbimdxcrslvdpqqalf.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_KGnwpyai1gG2rHBj6XSnmA_VlK-Yc8a';
   const API_URL = SUPABASE_URL + '/functions/v1/lennon-chat';
-  const MAX_MESSAGES = 30;
+  const MAX_MESSAGES = 60;
 
   // One shared site password. It signs in to a single Supabase account; this address is never emailed.
   const SITE_EMAIL = 'kepler@example.com';
@@ -907,8 +903,8 @@ body:not(.in) .side{display:none}
     const f = e.target.files[0];
     e.target.value = '';
     if (!f) return;
-    const text = f.size > 12000 ? null : await f.text();
-    if (text === null || box.value.length + text.length + f.name.length + 12 > 4000) { line('that file is too long. messages can be up to 4,000 characters, including files.', 'err'); return; }
+    const text = f.size > 30000 ? null : await f.text();
+    if (text === null || box.value.length + text.length + f.name.length + 12 > 32000) { line('that file is too long. messages can be up to 32,000 characters, including files.', 'err'); return; }
     box.value = (box.value ? box.value + '\n\n' : '') + `Here is ${f.name}:\n${text}`;
     grow(); line(`attached ${f.name} (${text.length} chars). add a message and press enter.`, 'ok'); focusInput();
   };
@@ -916,7 +912,7 @@ body:not(.in) .side{display:none}
   // ── Chat ──
   async function send(text) {
     if (!user) return;
-    if (text.length > 4000) { line('that message is too long. keep it under 4,000 characters.', 'err'); return; }
+    if (text.length > 32000) { line('that message is too long. keep it under 32,000 characters.', 'err'); return; }
     if (!current) {
       current = { id: null, title: text.slice(0, 40), messages: [], mode: 'chat' };
       chats.unshift(current);
