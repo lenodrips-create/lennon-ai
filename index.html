@@ -77,6 +77,8 @@ body:not(.in) .side{display:none}
 .opt .k{flex:none;width:14ch;font-weight:700}
 .help-row{display:flex;gap:2ch}
 .help-row .k{flex:none;width:18ch;font-weight:700}
+.stay-opt{padding:0 .3ch}
+.stay-opt:hover,.stay-opt.on{background:var(--fg);color:var(--bg)}
 .link-btn{text-decoration:underline;text-underline-offset:3px}
 .link-btn:hover{background:var(--fg);color:var(--bg);text-decoration:none}
 
@@ -129,11 +131,11 @@ body:not(.in) .side{display:none}
 <body>
 <div class="app">
   <header class="bar">
-    <span class="grow"><b>KEPLER//AI</b> <span class="only-wide">— tty1 — <span id="barUser">not logged in</span></span></span>
+    <span class="grow"><b>KEPLER//AI</b> <span class="only-wide">— tty1 — <span id="barUser">locked</span></span></span>
     <button type="button" class="only-in only-narrow" id="barChats" aria-expanded="false" aria-controls="side">[chats]</button>
     <button type="button" class="only-in" id="barNew">[new]</button>
     <button type="button" class="only-in" id="barHelp">[help]</button>
-    <button type="button" class="only-in" id="barOut">[logout]</button>
+    <button type="button" class="only-in" id="barOut">[lock]</button>
   </header>
 
   <div class="main">
@@ -168,22 +170,38 @@ body:not(.in) .side{display:none}
   const SUPABASE_URL = 'https://zxvbimdxcrslvdpqqalf.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_KGnwpyai1gG2rHBj6XSnmA_VlK-Yc8a';
   const API_URL = SUPABASE_URL + '/functions/v1/lennon-chat';
-  const SITE_URL = location.origin + location.pathname;
   const MAX_MESSAGES = 30;
 
-  const REMEMBER = 'kepler-remember';
+  // One shared site password. It signs in to a single Supabase account; this address is never emailed.
+  const SITE_EMAIL = 'kepler@example.com';
+  // "Stay signed in for": the choice is remembered, the login is kept only until it runs out.
+  const STAY = [
+    ['visit', 'this visit only', 0],
+    ['1h', '1 hour', 60],
+    ['1d', '1 day', 1440],
+    ['7d', '7 days', 10080],
+    ['30d', '30 days', 43200],
+  ];
+  const UNTIL = 'kepler-until', STAY_KEY = 'kepler-stay';
   const safe = (fn, fb) => { try { return fn(); } catch { return fb; } };
-  const remember = () => safe(() => localStorage.getItem(REMEMBER) !== '0', true);
+  const kept = () => Number(safe(() => localStorage.getItem(UNTIL), 0)) > Date.now();
+  // A saved login whose time is up is thrown away before Supabase starts, so the password screen shows.
+  if (!kept()) safe(() => {
+    localStorage.removeItem(UNTIL);
+    for (const k of Object.keys(localStorage)) if (k.startsWith('sb-')) localStorage.removeItem(k);
+    for (const k of Object.keys(sessionStorage)) if (k.startsWith('sb-')) sessionStorage.removeItem(k);
+  });
+  // "This visit only" keeps the login in memory: reloading or reopening the site asks again.
+  const mem = new Map();
   const authStorage = {
-    getItem: k => safe(() => sessionStorage.getItem(k) ?? localStorage.getItem(k), null),
-    setItem: (k, v) => safe(() => {
-      if (remember()) { localStorage.setItem(k, v); sessionStorage.removeItem(k); }
-      else { sessionStorage.setItem(k, v); localStorage.removeItem(k); }
-    }),
-    removeItem: k => safe(() => { localStorage.removeItem(k); sessionStorage.removeItem(k); }),
+    getItem: k => mem.has(k) ? mem.get(k) : (kept() ? safe(() => localStorage.getItem(k), null) : null),
+    setItem: (k, v) => { mem.set(k, v); if (kept()) safe(() => localStorage.setItem(k, v)); },
+    removeItem: k => { mem.delete(k); safe(() => localStorage.removeItem(k)); },
   };
+  let stay = safe(() => localStorage.getItem(STAY_KEY), null);
+  if (!STAY.some(x => x[0] === stay)) stay = 'visit';
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: { storage: authStorage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+    auth: { storage: authStorage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
   });
 
   const $ = id => document.getElementById(id);
@@ -196,8 +214,7 @@ body:not(.in) .side{display:none}
   let chats = [];
   let current = null;
   let busy = false;
-  let state = 'boot'; // boot | menu | email | pass | newpass | chat
-  let flow = null;    // { kind: 'login' | 'register' | 'reset', email }
+  let state = 'boot'; // boot | pass | chat
 
   // ── Output helpers ──
   const atBottom = () => term.scrollHeight - term.scrollTop - term.clientHeight < 120;
@@ -249,17 +266,14 @@ body:not(.in) .side{display:none}
 
   // ── Prompt and input ──
   const handle = () => {
-    if (!user) return 'guest';
-    const n = (profile.name || '').trim() || (user.email || '').split('@')[0] || (user.is_anonymous ? 'guest' : 'user');
+    const n = (profile.name || '').trim() || 'user';
     return n.toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-|-$/g, '').slice(0, 16) || 'user';
   };
-  const PROMPTS = { menu: 'select>', email: 'email:', pass: 'password:', newpass: 'new password:' };
-  const promptText = () => PROMPTS[state] || `${handle()}@kepler:~$`;
+  const promptText = () => state === 'pass' ? 'password:' : `${handle()}@kepler:~$`;
   function setPrompt() {
-    const secret = state === 'pass' || state === 'newpass';
+    const secret = state === 'pass';
     ps1.textContent = promptText();
     box.hidden = secret; pw.hidden = !secret;
-    pw.autocomplete = state === 'pass' && flow?.kind === 'login' ? 'current-password' : 'new-password';
     ps1.htmlFor = secret ? 'pw' : 'box';
     box.setAttribute('aria-label', state === 'chat' ? 'Message Kepler AI, or type a command' : promptText());
     form.hidden = busy || state === 'boot';
@@ -281,8 +295,8 @@ body:not(.in) .side{display:none}
     if (state === 'chat') {
       const n = chats.filter(inMode).length;
       s.textContent = `-- ${busy ? 'RUNNING' : 'INSERT'} --  model:${model}  effort:${effort}  chats:${n}`;
-    } else s.textContent = state === 'boot' ? '-- BOOT --' : '-- AUTH --';
-    $('barUser').textContent = user ? handle() + '@kepler' + (user.is_anonymous ? ' (guest)' : '') : 'not logged in';
+    } else s.textContent = state === 'boot' ? '-- BOOT --' : '-- LOCKED --';
+    $('barUser').textContent = user ? handle() + '@kepler' : 'locked';
   }
   const tick = () => { $('clock').textContent = new Date().toLocaleTimeString([], { hour12: false }); };
   tick(); setInterval(tick, 1000);
@@ -304,11 +318,10 @@ body:not(.in) .side{display:none}
       if (hits.length === 1) { box.value = hits[0] + ' '; grow(); }
       else if (hits.length) line(hits.join('   '));
     }
-    if (e.key === 'Escape' && state !== 'chat' && state !== 'menu') { e.preventDefault(); line('^C'); showMenu(); }
   });
   pw.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); submit(); }
-    if (e.key === 'Escape') { e.preventDefault(); pw.value = ''; line('^C'); showMenu(); }
+    if (e.key === 'Escape') { e.preventDefault(); pw.value = ''; }
   });
   form.addEventListener('submit', e => { e.preventDefault(); submit(); });
   // Clicking anywhere in the terminal (without selecting text) puts the cursor back on the command line.
@@ -326,18 +339,7 @@ body:not(.in) .side{display:none}
     echo(promptText(), secret ? '•'.repeat(Math.min(raw.length, 16)) : raw);
     if (!secret && v) { if (hist[hist.length - 1] !== raw) hist.push(raw); hi = hist.length; }
     if (state === 'chat') return v.startsWith('/') ? command(v) : (v && send(v));
-    if (state === 'menu') return v && pick(v);
-    if (/^(back|cancel|exit)$/i.test(v)) return showMenu();
-    if (state === 'email') {
-      if (!v) return line('email address required. type "back" for the menu.', 'err');
-      flow.email = v;
-      if (flow.kind === 'reset') return doReset();
-      state = 'pass'; setPrompt(); return;
-    }
-    if (state === 'pass' || state === 'newpass') {
-      if (raw.length < 8) { line('password must be at least 8 characters.', 'err'); return; }
-      return state === 'newpass' ? doNewPass(raw) : flow.kind === 'login' ? doLogin(raw) : doRegister(raw);
-    }
+    if (state === 'pass') return raw ? unlock(raw) : line('enter the password.', 'err');
   }
 
   // ── Boot and login ──
@@ -350,84 +352,69 @@ body:not(.in) .side{display:none}
   }
   const booted = bootSeq();
 
-  const MENU = [
-    ['1', 'login', 'sign in with email'],
-    ['2', 'register', 'create an account'],
-    ['3', 'guest', 'continue without an account'],
-    ['4', 'github', 'sign in with GitHub'],
-    ['5', 'reset', 'reset your password'],
-  ];
-  function showMenu() {
-    state = 'menu'; flow = null;
+  // ── Password screen ──
+  function showLock() {
+    state = 'pass';
     document.body.classList.remove('in');
     line();
-    line('ACCESS RESTRICTED :: authenticate to continue', 'b');
-    for (const [n, k, d] of MENU) {
-      const b = button('', () => { echo(PROMPTS.menu, n); pick(n); }, 'opt');
-      const kk = document.createElement('span'); kk.className = 'k'; kk.textContent = `[${n}] ${k}`;
-      const dd = document.createElement('span'); dd.textContent = d;
-      b.append(kk, dd); out.appendChild(b);
+    line('ACCESS RESTRICTED :: enter the password to continue', 'b');
+    const row = document.createElement('div'); row.className = 'ln stay';
+    row.setAttribute('role', 'radiogroup'); row.setAttribute('aria-label', 'Stay signed in for');
+    row.append('stay signed in for: ');
+    for (const [k, label] of STAY) {
+      const b = button('[' + label + ']', () => pickStay(k), 'stay-opt');
+      b.setAttribute('role', 'radio'); b.dataset.k = k;
+      row.append(b, ' ');
     }
-    line('type a number or name. esc goes back.');
+    out.appendChild(row);
+    paintStay();
     setPrompt();
   }
-  function pick(v) {
-    const m = MENU.find(x => x[0] === v.toLowerCase() || x[1] === v.toLowerCase());
-    if (!m) { line('invalid option: ' + v, 'err'); return; }
-    const k = m[1];
-    if (k === 'guest') return doGuest();
-    if (k === 'github') return doGithub();
-    flow = { kind: k };
-    line(k === 'login' ? '> login' : k === 'register' ? '> new account' : '> password reset', 'b');
-    state = 'email'; setPrompt();
+  function pickStay(k) {
+    stay = k; safe(() => localStorage.setItem(STAY_KEY, k));
+    paintStay(); focusInput();
   }
-  async function authCall(label, fn) {
+  function paintStay() {
+    document.querySelectorAll('.stay-opt').forEach(b => {
+      const on = b.dataset.k === stay;
+      b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on));
+    });
+  }
+  async function unlock(password) {
+    const [, label, mins] = STAY.find(x => x[0] === stay);
     setBusy(true);
-    const stop = spinner(out, label);
-    try { await fn(); }
-    catch { line('could not reach the sign-in service. check your connection and try again.', 'err'); }
-    finally { stop(); setBusy(false); }
+    const stop = spinner(out, 'authenticating');
+    // Kept logins are saved in this browser until the chosen time; "this visit only" stays in memory.
+    safe(() => { if (mins) localStorage.setItem(UNTIL, String(Date.now() + mins * 60000)); else localStorage.removeItem(UNTIL); });
+    try {
+      const { error } = await sb.auth.signInWithPassword({ email: SITE_EMAIL, password });
+      if (error) {
+        safe(() => localStorage.removeItem(UNTIL));
+        line(/invalid/i.test(error.message) ? 'access denied: wrong password.' : error.message, 'err');
+      } else {
+        state = 'boot';
+        // Supabase ends this login at the chosen time too ("this visit only" ends after 12 hours at most).
+        sb.rpc('kepler_set_session_expiry', { p_minutes: mins || 720 }).then(() => {});
+        line(`access granted. signed in for ${label}.`, 'ok');
+        if (mins) lockTimer();
+      }
+    } catch {
+      safe(() => localStorage.removeItem(UNTIL));
+      line('could not reach the sign-in service. check your connection and try again.', 'err');
+    } finally { stop(); setBusy(false); }
   }
-  const doLogin = password => authCall('authenticating', async () => {
-    safe(() => localStorage.setItem(REMEMBER, '1'));
-    const { error } = await sb.auth.signInWithPassword({ email: flow.email, password });
-    if (error) {
-      line(error.message === 'Invalid login credentials' ? 'access denied: email and password do not match.' : error.message, 'err');
-      line('try again, or type "back" for the menu.');
-      state = 'email';
-    } else state = 'boot';
-  });
-  const doRegister = password => authCall('creating account', async () => {
-    const { data, error } = await sb.auth.signUp({ email: flow.email, password, options: { emailRedirectTo: SITE_URL } });
-    if (error) { line(error.message, 'err'); state = 'email'; return; }
-    if (!data.session) { line('check your email for a link to confirm your account, then log in.', 'ok'); showMenu(); }
-    else state = 'boot';
-  });
-  const doReset = () => authCall('sending reset link', async () => {
-    const { error } = await sb.auth.resetPasswordForEmail(flow.email, { redirectTo: SITE_URL });
-    if (error) line(error.message, 'err');
-    else line('if that email has an account, a reset link is on its way.', 'ok');
-    showMenu();
-  });
-  const doNewPass = password => authCall('updating password', async () => {
-    const { error } = await sb.auth.updateUser({ password });
-    if (error) { line(error.message, 'err'); return; }
-    line('password updated.', 'ok');
-    lastUserId = user?.id || null;
-    state = 'boot';
-    await enter();
-  });
-  const doGuest = () => authCall('starting guest session', async () => {
-    safe(() => localStorage.setItem(REMEMBER, '1'));
-    const { error } = await sb.auth.signInAnonymously();
-    if (error) line(/anonymous/i.test(error.message) ? 'guest access is not turned on yet. log in or register.' : error.message, 'err');
-    else state = 'boot';
-  });
-  const doGithub = () => authCall('redirecting to github', async () => {
-    const { error } = await sb.auth.signInWithOAuth({ provider: 'github', options: { redirectTo: SITE_URL } });
-    if (error) line(error.message.includes('not enabled') ? 'github sign-in is not turned on yet.' : error.message, 'err');
-    else state = 'boot';
-  });
+  // Lock the site when the chosen time runs out, even if the page is still open.
+  let lockT = 0;
+  function lockTimer() {
+    clearTimeout(lockT);
+    const ms = Number(safe(() => localStorage.getItem(UNTIL), 0)) - Date.now();
+    if (ms > 0 && ms < 2 ** 31 - 1) lockT = setTimeout(() => { if (user) { line('time is up. locking.', 'ok'); lock(); } }, ms);
+  }
+  function lock() {
+    clearTimeout(lockT);
+    safe(() => localStorage.removeItem(UNTIL));
+    sb.auth.signOut();
+  }
 
   // ── Data (Supabase tables: profiles, chats) ──
   const inMode = c => (c.mode || 'chat') === 'chat';
@@ -464,7 +451,6 @@ body:not(.in) .side{display:none}
   }
   function welcome(first) {
     banner();
-    if (first) line(`authenticated as ${handle()}${user?.is_anonymous ? ' (guest session)' : ''}.`, 'ok');
     line('Kepler AI :: your friendly AI, powered by Groq. Built by Lennon, Kepler Designs.');
     line('type a message and press enter. shift+enter for a new line. /help lists commands.');
     line();
@@ -521,7 +507,7 @@ body:not(.in) .side{display:none}
   $('sideNew').onclick = newChat;
   $('barNew').onclick = newChat;
   $('barHelp').onclick = () => { if (state !== 'chat' || busy) return; echo(promptText(), '/help'); command('/help'); };
-  $('barOut').onclick = () => { if (busy) return; sb.auth.signOut(); };
+  $('barOut').onclick = () => { if (busy) return; lock(); };
 
   // Phones: slide-out chats panel
   function openSide() { document.body.classList.add('side-open'); $('barChats').setAttribute('aria-expanded', 'true'); $('side').inert = false; }
@@ -780,7 +766,7 @@ body:not(.in) .side{display:none}
     ['/whoami', 'show your account'],
     ['/about', 'about Kepler AI'],
     ['/wipe', 'delete all chats'],
-    ['/logout', 'sign out'],
+    ['/lock', 'lock the site (asks for the password again)'],
   ];
   function table(rows) {
     for (const [k, d] of rows) {
@@ -858,12 +844,14 @@ body:not(.in) .side{display:none}
         profile.name = arg.slice(0, 40); saveProfile(); setPrompt(); line('hello, ' + profile.name + '.', 'ok');
         break;
       }
-      case '/whoami':
-        line(`${handle()}  ${user?.is_anonymous ? 'guest session (not signed in)' : (user?.email || '')}`);
+      case '/whoami': {
+        const until = Number(safe(() => localStorage.getItem(UNTIL), 0));
+        line(`${handle()}  ::  signed in ${until > Date.now() ? 'until ' + new Date(until).toLocaleString() : 'for this visit only'}`);
         break;
+      }
       case '/about':
         line("Kepler AI is a friendly assistant. Ask questions, get help with writing or homework, or just chat. It can make mistakes, so check important answers.");
-        line('Signed-in chats are saved to your account; guest chats stay with this browser\'s guest session.');
+        line('Chats are saved to the site account in Supabase.');
         line('Powered by Groq. Built by Lennon, Kepler Designs.');
         break;
       case '/wipe': {
@@ -873,7 +861,7 @@ body:not(.in) .side{display:none}
         chats = []; current = null; render(); line('all chats deleted.', 'ok');
         break;
       }
-      case '/logout': case '/exit': case '/quit': await sb.auth.signOut(); break;
+      case '/logout': case '/lock': case '/exit': case '/quit': lock(); break;
       default: line(`${cmd}: command not found. type /help for the list.`, 'err');
     }
   }
@@ -936,24 +924,20 @@ body:not(.in) .side{display:none}
   // ── Session ──
   let lastUserId = null;
   sb.auth.onAuthStateChange((event, session) => {
-    if (event === 'PASSWORD_RECOVERY') {
-      user = session?.user || null;
-      booted.then(() => { line(); line('> choose a new password', 'b'); state = 'newpass'; setPrompt(); });
-      return;
-    }
-    if (state === 'newpass' && session) return;
     user = session?.user || null;
     if (!user) {
       const was = lastUserId;
       lastUserId = null; chats = []; current = null; renderSide();
+      clearTimeout(lockT);
       booted.then(() => {
-        if (was) { out.innerHTML = ''; banner(); line('session terminated.', 'ok'); }
-        showMenu();
+        if (was) { out.innerHTML = ''; banner(); line('locked.', 'ok'); }
+        showLock();
       });
       return;
     }
     if (user.id !== lastUserId) {
       lastUserId = user.id;
+      lockTimer();
       booted.then(() => setTimeout(() => enter().catch(() => {}), 0));
     }
   });

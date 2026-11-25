@@ -9,6 +9,20 @@ The Groq key is stored only as a secret in Supabase (Edge Functions → Secrets)
 
 Only `https://lenodrips-create.github.io` (and `localhost:8000` for testing) may call the function. To use another domain, add it to `ALLOWED_ORIGINS` in the function and redeploy.
 
+## Site password
+
+The site opens to a password screen. There is one password and no email: it signs in to a single Supabase account (`kepler@example.com`, never emailed), and the chat function only answers that account.
+
+**Set or change the password:** Supabase dashboard → SQL Editor → run (replace the text in quotes):
+
+```sql
+update auth.users
+set encrypted_password = extensions.crypt('YOUR PASSWORD HERE', extensions.gen_salt('bf'))
+where email = 'kepler@example.com';
+```
+
+**Stay signed in for:** the password screen offers this visit only, 1 hour, 1 day, 7 days or 30 days. The site forgets the login when the time runs out, and Supabase ends the session at the same time (`kepler_set_session_expiry` in `supabase/migrations/20261125233000_session_expiry.sql`).
+
 ## Legal pages
 
 **How to edit everything added in the audit:** see [`docs/EDITING-GUIDE.md`](docs/EDITING-GUIDE.md).

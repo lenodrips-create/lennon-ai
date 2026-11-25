@@ -1,6 +1,9 @@
 // Kepler AI chat: receives messages from the website, adds the Groq key, and returns the reply.
 // The key is read from the GROQ_API_KEY secret, so it never reaches the browser.
 
+// The single site account (kepler@example.com). Its password is the site password.
+const SITE_USER_ID = "bcc3fd7f-0dd5-4dc6-a635-36112d335015";
+
 const ALLOWED_ORIGINS = [
   "https://lenodrips-create.github.io",
   "http://localhost:8000",
@@ -134,6 +137,8 @@ Deno.serve(async (req) => {
   });
   if (!who.ok) return json({ error: "Your sign-in expired. Sign in again to keep chatting." }, 401, origin);
   const uid: string | undefined = (await who.json().catch(() => null))?.id;
+  // The site has one shared password, which signs in to this one account. No other account may chat.
+  if (uid !== SITE_USER_ID) return json({ error: "Enter the site password to chat with Kepler AI." }, 403, origin);
 
   // Accept the key under any of the names it might have been saved with in Supabase.
   const key = ["GROQ_API_KEY", "lennon api", "LENNON_API", "lennon_api", "LENNON API"]
