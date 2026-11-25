@@ -1,6 +1,6 @@
 # Kepler AI
 
-A simple AI chat site.
+A simple AI chat site with a black-and-white terminal interface. Type `/help` in the chat for commands.
 
 - `index.html` is the website, hosted on GitHub Pages.
 - `supabase/functions/lennon-chat/` is a Supabase Edge Function. It holds the Groq API key and sends chats to Groq.
@@ -18,4 +18,4 @@ Only `https://lenodrips-create.github.io` (and `localhost:8000` for testing) may
 ## Updating
 
 - After changing `supabase/functions/lennon-chat/index.ts`, redeploy the function in Supabase. Changes in this repository do not reach the live function on their own.
-- The two CDN scripts in `index.html` are pinned with `integrity` hashes. If you change a version, update its hash too, or the browser will refuse to load it.
+- The CDN script in `index.html` (supabase-js) is pinned with `integrity` hashes. If you change a version, update its hash too, or the browser will refuse to load it.

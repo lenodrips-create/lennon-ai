@@ -1,5 +1,7 @@
 # Kepler AI: what was added and how to edit it
 
+> **Note (25 Nov 2026):** the site was redesigned as a black-and-white terminal. Kepler Code, the Learning environment, the sidebar menus, the background video and the account menu were removed; everything is now done by typing commands (type `/help`). Sections below that describe the old interface are out of date. The legal pages and the chat function are unchanged apart from styling.
+
 This guide explains each thing added during the compliance audit (18 November 2026) and how to change it yourself.
 
 **How to edit any file:** on GitHub, open the file, click the pencil icon (✏️ "Edit this file"), make your change, then click **Commit changes**. GitHub Pages updates the live site from `main` within a minute or two. To find a line quickly, press `Ctrl+F` (`Cmd+F` on Mac) in the editor and search for the text shown below.
@@ -62,7 +64,7 @@ In `credits.html`, add a new `<li>` line inside the right list:
 
 ### Changing how the pages look
 
-All three pages share one stylesheet: `assets/legal.css`. For example, to change the link colour, edit `a{color:#1d4ed8}`.
+All three pages share one stylesheet: `assets/legal.css`. For example, to change the link colour, edit `a{color:#fff;...}`.
 
 ### Hiding the legal links until the pages are ready
 
