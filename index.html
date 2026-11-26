@@ -185,7 +185,7 @@ body:not(.in) .side{display:none}
 
   <footer class="bar">
     <span class="grow" id="status">-- BOOT --</span>
-    <a href="privacy.html">privacy</a><a href="terms.html">terms</a><a href="credits.html">credits</a>
+    <a href="privacy.html">privacy</a><a href="terms.html">terms</a><a href="credits.html">credits</a><a href="cookies.html">cookies</a>
     <span id="clock" class="only-wide" aria-hidden="true"></span>
   </footer>
 </div>
@@ -205,9 +205,9 @@ body:not(.in) .side{display:none}
         <select id="lockStay"></select>
       </div>
       <button type="submit" class="lock-go" id="lockGo">Sign in</button>
-      <p class="lock-note">Chats are saved on the server and visible to everyone with the password.</p>
+      <p class="lock-note">Chats are saved on the server and visible to everyone with the password. Kepler uses a cookie to recognise this device and records its approximate location. <a href="cookies.html">Cookie policy</a></p>
     </form>
-    <nav class="lock-legal" aria-label="Legal"><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="credits.html">Credits</a></nav>
+    <nav class="lock-legal" aria-label="Legal"><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="credits.html">Credits</a><a href="cookies.html">Cookies</a></nav>
   </div>
 </div>
 
@@ -220,6 +220,14 @@ body:not(.in) .side{display:none}
 
   // One shared site password. It signs in to a single Supabase account; this address is never emailed.
   const SITE_EMAIL = 'kepler@example.com';
+  // Device cookie: a random ID so the /admin page can list devices (see cookies.html).
+  const DEVICE = (() => {
+    const m = document.cookie.match(/(?:^|;\s*)kepler_device=([0-9a-f-]{36})/i);
+    const id = m ? m[1] : (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); }));
+    document.cookie = `kepler_device=${id}; Max-Age=31536000; Path=${location.pathname.replace(/[^/]*$/, "")}; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`;
+    return id;
+  })();
   // "Stay signed in for": the choice is remembered, the login is kept only until it runs out.
   const STAY = [
     ['visit', 'this visit only', 0],
@@ -424,6 +432,7 @@ body:not(.in) .side{display:none}
         ok = true; state = 'boot';
         // Supabase ends this login at the chosen time too ("this visit only" ends after 12 hours at most).
         sb.rpc('kepler_set_session_expiry', { p_minutes: mins || 720 }).then(() => {});
+        ping();
         line(`access granted. signed in for ${label}.`, 'ok');
         if (mins) lockTimer();
       }
@@ -435,6 +444,15 @@ body:not(.in) .side{display:none}
       if (ok) { lockPw.value = ''; hideLock(); }
       else { lockErr.hidden = false; lockPw.select(); }
     }
+  }
+  // Tell the chat function this device signed in (it records the device and its approximate location).
+  async function ping() {
+    try {
+      const { data: s } = await sb.auth.getSession();
+      if (!s.session) return;
+      await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + s.session.access_token },
+        body: JSON.stringify({ ping: true, device: DEVICE }) });
+    } catch {}
   }
   // Lock the site when the chosen time runs out, even if the page is still open.
   let lockT = 0;
@@ -797,6 +815,7 @@ body:not(.in) .side{display:none}
     ['/clear', 'clear the screen'],
     ['/name NAME', 'set your display name'],
     ['/whoami', 'show your account'],
+    ['/admin', 'open the admin page (devices and locations)'],
     ['/about', 'about Kepler AI'],
     ['/wipe', 'delete all chats'],
     ['/lock', 'lock the site (asks for the password again)'],
@@ -882,6 +901,7 @@ body:not(.in) .side{display:none}
         line(`${handle()}  ::  signed in ${until > Date.now() ? 'until ' + new Date(until).toLocaleString() : 'for this visit only'}`);
         break;
       }
+      case '/admin': line('opening /admin ...', 'ok'); location.href = 'admin/'; break;
       case '/about':
         line("Kepler AI is a friendly assistant. Ask questions, get help with writing or homework, or just chat. It can make mistakes, so check important answers.");
         line('Chats are saved to the site account in Supabase.');
@@ -933,7 +953,7 @@ body:not(.in) .side{display:none}
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + s.session.access_token },
-        body: JSON.stringify({ model, effort, mode: 'chat', messages: chat.messages.slice(-MAX_MESSAGES).map(m => ({ role: m.role, content: m.content })) }),
+        body: JSON.stringify({ model, effort, mode: 'chat', device: DEVICE, messages: chat.messages.slice(-MAX_MESSAGES).map(m => ({ role: m.role, content: m.content })) }),
       });
       const data = await res.json().catch(() => ({}));
       stop();

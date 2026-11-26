@@ -23,11 +23,24 @@ where email = 'kepler@example.com';
 
 **Stay signed in for:** the password screen offers this visit only, 1 hour, 5 hours (default), 1 day, 7 days or 30 days. The site forgets the login when the time runs out, and Supabase ends the session at the same time (`kepler_set_session_expiry` in `supabase/migrations/20261125233000_session_expiry.sql`).
 
+## Admin page (devices and locations)
+
+Type `/admin` in the chat, or open `admin/` on the site. It lists every device that has signed in or chatted: device type, approximate location (city, region, country, map link), network, first and last seen, sign-ins and messages. Devices are recognised by the `kepler_device` cookie (see `cookies.html`). Locations come from the IP address via ipwho.is or ipapi.co, which need no API key. Optionally add an `IPINFO_TOKEN` secret (Edge Functions → Secrets) to use ipinfo.io first.
+
+The admin page has its own password, separate from the site password. **Set or change it:** Supabase dashboard → SQL Editor → run:
+
+```sql
+update public.kepler_admin
+set password_hash = extensions.crypt('YOUR ADMIN PASSWORD', extensions.gen_salt('bf'));
+```
+
+Delete a device record: `delete from public.devices where id = 'DEVICE ID';` (or `delete from public.devices;` for all).
+
 ## Legal pages
 
 **How to edit everything added in the audit:** see [`docs/EDITING-GUIDE.md`](docs/EDITING-GUIDE.md).
 
-`privacy.html`, `terms.html` and `credits.html` are **drafts**. Fill in every highlighted `[placeholder]` and have them reviewed by a lawyer before launch. See `docs/compliance-audit-2026-11-18.md` for the full audit.
+`privacy.html`, `terms.html`, `credits.html` and `cookies.html` are **drafts**. Fill in every highlighted `[placeholder]` and have them reviewed by a lawyer before launch. See `docs/compliance-audit-2026-11-18.md` for the full audit.
 
 ## Updating
 

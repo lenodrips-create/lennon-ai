@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Kepler Admin</title>
+<link rel="icon" type="image/svg+xml" href="../brand/icon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="../brand/icon-32.png">
+<meta name="theme-color" content="#000000">
+<style>
+/* Admin page: same terminal look as the site. Black and white only, monospace, no rounded corners. */
+:root{--bg:#000;--fg:#fff;--font:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono","DejaVu Sans Mono",monospace;color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;border-radius:0!important}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--fg);font:14px/1.5 var(--font);-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit;background:none;border:0}
+button{cursor:pointer}
+a{color:inherit;text-underline-offset:3px}
+a:hover{background:var(--fg);color:var(--bg);text-decoration:none}
+::selection{background:var(--fg);color:var(--bg)}
+:focus-visible{outline:1px dashed var(--fg);outline-offset:2px}
+[hidden]{display:none!important}
+.bar{display:flex;align-items:center;gap:1ch;min-height:28px;padding:0 1ch;white-space:nowrap;overflow:hidden;border-bottom:1px solid var(--fg)}
+.bar .grow{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.bar button,.bar a{padding:0 .5ch;text-decoration:none}
+.bar button:hover,.bar a:hover{background:var(--fg);color:var(--bg)}
+main{padding:20px 16px 48px;max-width:1400px;margin:0 auto}
+h1{font-size:18px;margin-bottom:4px}
+.dim::before{content:"# "}
+.login{max-width:420px;margin:12vh auto 0}
+.login label{display:block;font-weight:700;margin:20px 0 8px}
+.login input{width:100%;height:44px;padding:0 12px;border:1px solid var(--fg);outline:none;font-size:16px;caret-color:var(--fg)}
+.login input:focus{box-shadow:0 0 0 1px var(--fg)}
+.go{margin-top:14px;width:100%;height:44px;background:var(--fg);color:var(--bg);font-weight:700}
+.go:hover{background:var(--bg);color:var(--fg);box-shadow:inset 0 0 0 1px var(--fg)}
+.err{margin-top:10px;font-weight:700}
+.err::before{content:"ERR ";background:var(--fg);color:var(--bg);padding:0 .5ch;margin-right:1ch}
+.stats{display:flex;flex-wrap:wrap;gap:12px;margin:18px 0}
+.stat{border:1px solid var(--fg);padding:8px 14px;min-width:150px}
+.stat b{display:block;font-size:24px}
+.find{display:flex;gap:1ch;align-items:center;border:1px solid var(--fg);padding:4px 10px;margin-bottom:12px;max-width:420px}
+.find input{flex:1;min-width:0;outline:none;caret-color:var(--fg)}
+.wrap{overflow-x:auto;border:1px solid var(--fg)}
+table{border-collapse:collapse;width:100%;min-width:900px}
+th,td{text-align:left;vertical-align:top;padding:6px 10px;border-bottom:1px solid var(--fg)}
+th{background:var(--fg);color:var(--bg);white-space:nowrap;cursor:pointer;user-select:none}
+th[aria-sort]::after{content:" ▼"}
+th[aria-sort="ascending"]::after{content:" ▲"}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+.sub{display:block;font-size:12px}
+.empty{padding:16px}
+.note{margin-top:16px;font-size:12px}
+</style>
+</head>
+<body>
+<header class="bar">
+  <span class="grow"><b>KEPLER//ADMIN</b> — devices and locations</span>
+  <button type="button" id="refresh" hidden>[refresh]</button>
+  <button type="button" id="out" hidden>[lock]</button>
+  <a href="../">[back to chat]</a>
+</header>
+
+<main>
+  <form class="login" id="login" autocomplete="on">
+    <h1>Admin</h1>
+    <p class="dim">enter the admin password to see devices that have used Kepler AI.</p>
+    <input type="text" name="username" autocomplete="username" value="kepler-admin" hidden>
+    <label for="pw">Admin password</label>
+    <input id="pw" name="password" type="password" autocomplete="current-password" required>
+    <button type="submit" class="go" id="go">Open</button>
+    <p class="err" id="err" role="alert" hidden></p>
+  </form>
+
+  <section id="panel" hidden>
+    <h1>Devices</h1>
+    <p class="dim" id="updated"></p>
+    <div class="stats" id="stats"></div>
+    <label class="find"><span aria-hidden="true">grep</span><input id="find" type="search" placeholder="filter by device, place or network" aria-label="Filter devices" autocomplete="off"></label>
+    <div class="wrap">
+      <table>
+        <thead><tr>
+          <th data-k="label">Device</th>
+          <th data-k="place">Location</th>
+          <th data-k="isp">Network</th>
+          <th data-k="first_seen">First seen</th>
+          <th data-k="last_seen" aria-sort="descending">Last seen</th>
+          <th data-k="visits">Sign-ins</th>
+          <th data-k="messages">Messages</th>
+          <th>Map</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <p class="note">Locations are approximate (city level, from the IP address). Each device is a browser with the kepler_device cookie, so clearing cookies or using another browser shows up as a new device.</p>
+  </section>
+</main>
+
+<script>
+  const SUPABASE_URL = 'https://zxvbimdxcrslvdpqqalf.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_KGnwpyai1gG2rHBj6XSnmA_VlK-Yc8a';
+  const $ = id => document.getElementById(id);
+  let password = '', devices = [], sortKey = 'last_seen', sortAsc = false;
+
+  async function load() {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/kepler_admin_devices', {
+      method: 'POST',
+      headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_password: password }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(data && /admin password/i.test(data.message || '') ? 'wrong admin password.' : 'could not load devices. try again.');
+    devices = Array.isArray(data) ? data : [];
+    render();
+  }
+
+  $('login').addEventListener('submit', async e => {
+    e.preventDefault();
+    password = $('pw').value;
+    $('go').disabled = true; $('go').textContent = 'Checking…'; $('err').hidden = true;
+    try {
+      await load();
+      $('login').hidden = true; $('panel').hidden = false; $('refresh').hidden = false; $('out').hidden = false;
+      $('pw').value = '';
+    } catch (er) {
+      password = '';
+      $('err').textContent = er.message || 'could not reach the server.'; $('err').hidden = false; $('pw').select();
+    } finally { $('go').disabled = false; $('go').textContent = 'Open'; }
+  });
+  $('refresh').onclick = () => load().catch(er => alert(er.message));
+  $('out').onclick = () => { password = ''; devices = []; $('rows').innerHTML = ''; $('panel').hidden = true; $('login').hidden = false; $('refresh').hidden = true; $('out').hidden = true; $('pw').focus(); };
+  $('find').addEventListener('input', render);
+  document.querySelectorAll('th[data-k]').forEach(th => th.onclick = () => {
+    const k = th.dataset.k;
+    if (sortKey === k) sortAsc = !sortAsc; else { sortKey = k; sortAsc = k === 'label' || k === 'place' || k === 'isp'; }
+    render();
+  });
+
+  const place = d => [d.city, d.region, d.country].filter(Boolean).join(', ');
+  const when = t => t ? new Date(t).toLocaleString() : '';
+  const ago = t => {
+    if (!t) return '';
+    const s = (Date.now() - new Date(t)) / 1000;
+    return s < 60 ? 'just now' : s < 3600 ? Math.round(s / 60) + ' min ago' : s < 86400 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' days ago';
+  };
+  function cell(tr, text, sub, cls) {
+    const td = document.createElement('td'); if (cls) td.className = cls;
+    td.append(text ?? '');
+    if (sub) { const s = document.createElement('span'); s.className = 'sub'; s.textContent = sub; td.appendChild(s); }
+    tr.appendChild(td); return td;
+  }
+  function render() {
+    const q = $('find').value.trim().toLowerCase();
+    const val = (d, k) => k === 'place' ? place(d) : d[k];
+    const list = devices
+      .filter(d => !q || [d.label, place(d), d.isp, d.user_agent, d.id].some(x => (x || '').toLowerCase().includes(q)))
+      .sort((a, b) => {
+        const x = val(a, sortKey) ?? '', y = val(b, sortKey) ?? '';
+        const c = typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y));
+        return sortAsc ? c : -c;
+      });
+    document.querySelectorAll('th[data-k]').forEach(th => {
+      if (th.dataset.k === sortKey) th.setAttribute('aria-sort', sortAsc ? 'ascending' : 'descending'); else th.removeAttribute('aria-sort');
+    });
+
+    const day = Date.now() - 86400000;
+    const countries = new Set(devices.map(d => d.country).filter(Boolean));
+    $('stats').innerHTML = '';
+    for (const [n, label] of [
+      [devices.length, 'devices'],
+      [devices.filter(d => new Date(d.last_seen) > day).length, 'active in 24 h'],
+      [countries.size, countries.size === 1 ? 'country' : 'countries'],
+      [devices.reduce((s, d) => s + (d.messages || 0), 0), 'messages'],
+    ]) {
+      const box = document.createElement('div'); box.className = 'stat';
+      const b = document.createElement('b'); b.textContent = n;
+      box.append(b, label); $('stats').appendChild(box);
+    }
+    $('updated').textContent = 'loaded ' + new Date().toLocaleTimeString();
+
+    const rows = $('rows'); rows.innerHTML = '';
+    if (!list.length) {
+      const tr = document.createElement('tr'); const td = document.createElement('td');
+      td.colSpan = 8; td.className = 'empty';
+      td.textContent = devices.length ? 'no devices match the filter.' : 'no devices yet. they appear after someone signs in or sends a message.';
+      tr.appendChild(td); rows.appendChild(tr); return;
+    }
+    for (const d of list) {
+      const tr = document.createElement('tr');
+      const dev = cell(tr, d.label || 'Unknown device', d.id.slice(0, 8));
+      dev.title = d.user_agent || '';
+      cell(tr, place(d) || 'unknown', d.timezone || '');
+      cell(tr, d.isp || '');
+      cell(tr, when(d.first_seen));
+      cell(tr, ago(d.last_seen), when(d.last_seen));
+      cell(tr, String(d.visits ?? 0), '', 'n');
+      cell(tr, String(d.messages ?? 0), '', 'n');
+      const m = cell(tr, '');
+      if (d.lat != null && d.lon != null) {
+        const a = document.createElement('a');
+        a.href = `https://www.openstreetmap.org/?mlat=${d.lat}&mlon=${d.lon}#map=10/${d.lat}/${d.lon}`;
+        a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = '[map]';
+        m.appendChild(a);
+      }
+      rows.appendChild(tr);
+    }
+  }
+</script>
+</body>
+</html>

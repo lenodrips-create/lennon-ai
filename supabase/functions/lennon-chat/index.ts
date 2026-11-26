@@ -95,6 +95,78 @@ const VISION: Engine[] = [
   { id: "meta-llama/llama-4-scout-17b-16e-instruct", tokens: 4096 },
 ];
 
+// ── Devices and locations (shown on the /admin page) ──
+// The site sends a random device ID from its kepler_device cookie. The location is looked up from the
+// IP address (city level) and only the city, region, country, rough coordinates and network name are kept.
+const DEVICE_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function deviceLabel(ua: string) {
+  const os = /iPhone/.test(ua) ? "iPhone" : /iPad/.test(ua) ? "iPad" : /Android/.test(ua) ? "Android"
+    : /CrOS/.test(ua) ? "ChromeOS" : /Windows/.test(ua) ? "Windows" : /Mac OS X|Macintosh/.test(ua) ? "Mac"
+    : /Linux/.test(ua) ? "Linux" : "Unknown device";
+  const br = /Edg\//.test(ua) ? "Edge" : /OPR\/|Opera/.test(ua) ? "Opera" : /Firefox|FxiOS/.test(ua) ? "Firefox"
+    : /SamsungBrowser/.test(ua) ? "Samsung Internet" : /Chrome|CriOS/.test(ua) ? "Chrome" : /Safari/.test(ua) ? "Safari" : "Browser";
+  return `${os} · ${br}`;
+}
+async function sha256(text: string) {
+  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+function serviceRpc(fn: string, body: unknown) {
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  return fetch(`${Deno.env.get("SUPABASE_URL")}/rest/v1/rpc/${fn}`, {
+    method: "POST",
+    headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+type Place = { city: string | null; region: string | null; country: string | null; timezone: string | null; lat: number | null; lon: number | null; isp: string | null };
+// No API key is needed. If an IPINFO_TOKEN secret is set, ipinfo.io is used first (more reliable).
+async function locate(ip: string): Promise<Place | null> {
+  const get = async (url: string) => {
+    const r = await fetch(url, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(4000) });
+    return r.ok ? await r.json() : null;
+  };
+  const token = Deno.env.get("IPINFO_TOKEN");
+  try {
+    if (token) {
+      const j = await get(`https://ipinfo.io/${encodeURIComponent(ip)}?token=${encodeURIComponent(token)}`);
+      if (j && !j.bogon && j.city) {
+        const [lat, lon] = String(j.loc || ",").split(",").map(Number);
+        return { city: j.city, region: j.region ?? null, country: j.country ?? null, timezone: j.timezone ?? null, lat: lat || null, lon: lon || null, isp: j.org ?? null };
+      }
+    }
+  } catch (e) { console.error("ipinfo failed", String(e)); }
+  try {
+    const j = await get(`https://ipwho.is/${encodeURIComponent(ip)}`);
+    if (j?.success) return { city: j.city ?? null, region: j.region ?? null, country: j.country ?? null, timezone: j.timezone?.id ?? null, lat: j.latitude ?? null, lon: j.longitude ?? null, isp: j.connection?.isp ?? null };
+  } catch (e) { console.error("ipwho.is failed", String(e)); }
+  try {
+    const j = await get(`https://ipapi.co/${encodeURIComponent(ip)}/json/`);
+    if (j && !j.error) return { city: j.city ?? null, region: j.region ?? null, country: j.country_name ?? null, timezone: j.timezone ?? null, lat: j.latitude ?? null, lon: j.longitude ?? null, isp: j.org ?? null };
+  } catch (e) { console.error("ipapi.co failed", String(e)); }
+  return null;
+}
+async function trackDevice(req: Request, device: unknown, message: boolean) {
+  if (typeof device !== "string" || !DEVICE_RE.test(device) || !Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) return;
+  const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || req.headers.get("cf-connecting-ip") || "";
+  const ua = (req.headers.get("user-agent") || "").slice(0, 400);
+  const ipHash = ip ? await sha256(`kepler:${SITE_USER_ID}:${ip}`) : null;
+  const r = await serviceRpc("kepler_track_device", { p_id: device, p_label: deviceLabel(ua), p_ua: ua, p_ip_hash: ipHash, p_message: message });
+  if (!r.ok) { console.error(`track device ${r.status}: ${(await r.text()).slice(0, 200)}`); return; }
+  const prev = await r.json().catch(() => null);
+  if (!ip || prev === ipHash) return;
+  const p = await locate(ip);
+  if (!p) return;
+  const l = await serviceRpc("kepler_device_location", { p_id: device, p_city: p.city, p_region: p.region, p_country: p.country, p_timezone: p.timezone, p_lat: p.lat, p_lon: p.lon, p_isp: p.isp });
+  if (!l.ok) console.error(`device location ${l.status}`);
+}
+// Runs after the reply is sent, so logging never slows chat down.
+function background(p: Promise<unknown>) {
+  const rt = (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime;
+  const safe = p.catch((e) => console.error("background task failed", String(e)));
+  if (rt?.waitUntil) rt.waitUntil(safe);
+}
+
 function cors(origin: string | null) {
   const allow = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
@@ -149,6 +221,12 @@ Deno.serve(async (req) => {
   let image: string | null = null;
   try {
     const body = await req.json();
+    // Sign-in ping from the site: record the device and stop.
+    if (body.ping === true) {
+      background(trackDevice(req, body.device, false));
+      return json({ ok: true }, 200, origin);
+    }
+    background(trackDevice(req, body.device, true));
     messages = body.messages;
     picked = pickModel(body.model, body.effort);
     code = body.mode === "code";

@@ -20,11 +20,11 @@
 <p>Kepler AI is a chat website run by <span class="todo">[legal name of the business or person]</span>, trading as Kepler Designs (“we”). Contact us about privacy at <span class="todo">[contact email]</span>.</p>
 
 <h2>What we collect</h2>
-<h3>When you create an account or sign in</h3>
+<h3>When you sign in</h3>
 <ul>
-  <li><strong>Email and password.</strong> If you sign up with email, we collect your email address and password. Passwords are handled by our sign-in provider, Supabase. We cannot see your password.</li>
-  <li><strong>GitHub sign-in.</strong> If you choose “Continue with GitHub”, GitHub shares your account details with us, which can include your name, GitHub username, email address and profile picture link.</li>
-  <li><strong>Guest use.</strong> If you choose “Skip for now”, we create an anonymous guest account. It has an ID but no email address.</li>
+  <li><strong>No account or email.</strong> Kepler AI has one shared password. Everyone who knows it signs in to the same site account, so chats are visible to everyone with the password.</li>
+  <li><strong>Your device.</strong> We set a cookie with a random device ID (see the <a href="cookies.html">Cookie Policy</a>). With it we record your browser and device type (for example “iPhone · Safari”), when the device first and last used Kepler AI, and how many times it signed in and sent messages.</li>
+  <li><strong>Approximate location.</strong> When you sign in or send a message, we look up your IP address to find an approximate location: city, region, country, time zone, rough coordinates and internet provider. We keep only those results and a scrambled (hashed) copy of the IP address, not the IP address itself.</li>
 </ul>
 <h3>When you use Kepler AI</h3>
 <ul>
@@ -32,12 +32,12 @@
   <li><strong>Profile settings.</strong> The display name you choose, your status (online, focus or offline) and your light or dark setting.</li>
   <li><strong>Technical data.</strong> Like most websites, the services that deliver this site receive your IP address and browser details when your browser contacts them (see “Services we use” below).</li>
 </ul>
-<p>We do not use analytics, advertising or tracking tools, and we do not sell your personal information.</p>
+<p>The site owner can see the device list and locations on a password-protected admin page. We do not use advertising tools, and we do not sell your personal information.</p>
 
 <h2>How we use it</h2>
 <ul>
   <li>To sign you in and keep your account secure.</li>
-  <li>To generate replies: each time you send a message, your recent conversation (up to 30 messages) is sent to Groq, which runs the AI models.</li>
+  <li>To generate replies: each time you send a message, your recent conversation (up to 60 messages) is sent to Groq, which runs the AI models.</li>
   <li>To save your chats and settings so you can see them again.</li>
 </ul>
 <p>Legal basis for processing (for visitors in the UK or EU): <span class="todo">[to be confirmed by a lawyer, e.g. performance of a contract for accounts and chats]</span>.</p>
@@ -45,30 +45,25 @@
 <h2>Services we use</h2>
 <div class="table-wrap"><table>
   <tr><th>Service</th><th>What it does</th><th>Data it receives</th></tr>
-  <tr><td>Supabase</td><td>Sign-in, database and the server code that talks to Groq. Data is stored in Supabase’s US East (N. Virginia) region.</td><td>Account details, chats, profile settings, IP address</td></tr>
+  <tr><td>Supabase</td><td>Sign-in, database and the server code that talks to Groq. Data is stored in Supabase’s US East (N. Virginia) region.</td><td>Chats, settings, device records and approximate locations, IP address</td></tr>
   <tr><td>Groq</td><td>Runs the AI models that write replies</td><td>The messages in your current chat</td></tr>
   <tr><td>GitHub Pages</td><td>Hosts this website</td><td>IP address and browser details</td></tr>
-  <tr><td>GitHub (only if you choose it)</td><td>Sign-in with GitHub</td><td>Your sign-in with GitHub</td></tr>
+  <tr><td>ipwho.is, ipapi.co (and ipinfo.io if set up)</td><td>Turn an IP address into an approximate location</td><td>IP address</td></tr>
   <tr><td>jsDelivr</td><td>Delivers a code library the site uses</td><td>IP address and browser details</td></tr>
 </table></div>
 <p>Each service handles data under its own privacy policy. Groq’s policy explains whether and how long it keeps the messages it processes: <span class="todo">[link to Groq’s current privacy policy and data-retention terms, confirmed by the owner]</span>.</p>
 <p>These services may process data outside your country, including in the United States. <span class="todo">[Transfer safeguards to be confirmed by a lawyer if you serve people in the UK or EU]</span>.</p>
 
 <h2>Storage on your device</h2>
-<p>We do not set cookies. We use your browser’s local storage for things the site needs to work:</p>
-<ul>
-  <li>your sign-in session (kept until you sign out; if you untick “Keep me signed in” it is kept only until you close the tab)</li>
-  <li>whether you asked to stay signed in</li>
-  <li>the AI model and effort level you last picked</li>
-</ul>
+<p>We set one cookie (a random device ID) and use your browser’s local storage for your sign-in and settings. The <a href="cookies.html">Cookie Policy</a> lists each item, what it is for and how long it lasts.</p>
 
 <h2>How long we keep it</h2>
-<p>Chats are kept until you delete them with “Clear all chats” in the menu. Your account and profile are kept until you ask us to delete them. <span class="todo">[Owner to decide: a retention period for inactive accounts and guest accounts]</span>. Our service providers may keep logs for their own periods.</p>
+<p>Chats are kept until they are deleted (for example with the /wipe command). Device records and approximate locations are kept until the owner deletes them. <span class="todo">[Owner to decide: how long to keep device records and locations, e.g. delete devices not seen for 12 months]</span>. Our service providers may keep logs for their own periods.</p>
 
 <h2>Your choices and rights</h2>
 <ul>
-  <li>You can delete all your chats at any time from the menu.</li>
-  <li>To delete your account, or to ask for a copy of your data, email <span class="todo">[contact email]</span>. The site does not yet have a self-service delete-account button.</li>
+  <li>Anyone with the password can delete chats with the /rm and /wipe commands.</li>
+  <li>To have your device record deleted, or to ask for a copy of it, email <span class="todo">[contact email]</span>. Clearing your cookies stops your browser being linked to its old record.</li>
   <li>Depending on where you live you may have further rights, such as correction or objection. <span class="todo">[List of rights for the places you serve, confirmed by a lawyer]</span>.</li>
 </ul>
 
@@ -81,7 +76,7 @@
 <h2>Changes</h2>
 <p>If we change this policy, we will update the date at the top of this page.</p>
 
-<footer><a href="./">Back to Kepler AI</a> · <a href="terms.html">Terms</a> · <a href="credits.html">Credits</a></footer>
+<footer><a href="./">Back to Kepler AI</a> · <a href="terms.html">Terms</a> · <a href="credits.html">Credits</a> · <a href="cookies.html">Cookies</a></footer>
 </main>
 </body>
 </html>
